@@ -1,0 +1,22 @@
+# Logs & temp
+*.log
+*.tmp
+*.swp
+.DS_Store
+Thumbs.db
+
+# Editor / OS
+.vscode/
+.fleet/
+.idea/
+
+# Maps, archives, dependencies, generated output
+*.map
+*.zip
+*.tar.gz
+node_modules/
+dist/
+build/
+coverage/
+.cache/
+*.lock

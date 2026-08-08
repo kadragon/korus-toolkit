@@ -1,0 +1,12 @@
+node_modules/
+dist/
+build/
+coverage/
+.cache/
+.claude/tmp/
+.playwright-cli/
+output/playwright/
+*.log
+.env
+.env.*
+!.env.example
