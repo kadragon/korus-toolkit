@@ -1,6 +1,6 @@
 # KORUS Playwright Login Helper
 
-status: active
+status: complete
 
 ## Scope
 
@@ -11,12 +11,15 @@ status: active
 
 ## Acceptance Criteria
 
-- [ ] Missing `.env` keys fail with a non-sensitive error.
-- [ ] Login fields use the observed accessible locators.
-- [ ] Successful execution verifies the exact origin, landing path, and visible logout marker.
-- [ ] Existing authenticated sessions skip credential entry and still verify the landing page.
-- [ ] Syntax, principle checks, and a live credential-backed run pass.
+- [x] Missing `.env` keys fail with a non-sensitive error.
+- [x] Login fields use the observed accessible locators.
+- [x] Successful execution verifies the exact origin, landing path, and visible logout marker.
+- [x] Existing authenticated sessions skip credential entry and still verify the landing page.
+- [x] Syntax, principle checks, and a live credential-backed run pass.
 
 ## Evaluator Feedback
 
-- Pending verification.
+- PowerShell parser: PASS.
+- `tools/check-principles.ps1`: PASS.
+- Live fresh-session login and existing-session verification: PASS; landing path `/poc/mi/IndxCtr/indx.do`.
+- Independent product evaluator unavailable in this session; evidence is mechanical plus live browser verification.

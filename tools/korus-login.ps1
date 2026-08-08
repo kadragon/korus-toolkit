@@ -142,9 +142,9 @@ try {
         throw 'KORUS landing-page marker was not visible.'
     }
 
-    Write-Host 'KORUS login: PASS'
-    Write-Host "Landing path: $currentPath"
-    Write-Host "Playwright session remains open: $Session"
+    Write-Output 'KORUS login: PASS'
+    Write-Output "Landing path: $currentPath"
+    Write-Output "Playwright session remains open: $Session"
 } finally {
     Pop-Location
 }
