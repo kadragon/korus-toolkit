@@ -2,7 +2,7 @@
 
 ## Current State
 
-Harness is Level 1. Product stack, browser targets, manifest version, package manager, build system, and test framework remain undecided. No install/build/test command is asserted until verified against the selected stack.
+Harness is Level 1. Product stack is decided in `docs/design/chrome-extension-stack.md`: Chrome and Edge, Manifest V3, TypeScript, Vite, pnpm. No scaffold, `package.json`, or manifest exists yet, so no install/build/test command is asserted until verified against the built scaffold.
 
 ## Harness Checks
 

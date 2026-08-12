@@ -1,6 +1,6 @@
 # KORUS Toolkit Agent Rules
 
-Browser-extension repository targeting `https://knue.korus.ac.kr/`. Product stack remains undecided; never infer a runtime, manifest version, package manager, or command.
+Browser-extension repository targeting `https://knue.korus.ac.kr/`. Stack is decided in `docs/design/chrome-extension-stack.md` (Chromium — Chrome and Edge — Manifest V3, Vite, TypeScript, pnpm). Never infer a runtime, manifest version, package manager, command, or version not recorded there; no scaffold exists yet, so build/test commands stay unverified.
 
 ## Docs Index (read on demand)
 
@@ -12,6 +12,7 @@ Browser-extension repository targeting `https://knue.korus.ac.kr/`. Product stac
 | `docs/eval-criteria.md` | When defining or grading Sprint Contract completion |
 | `docs/runbook.md` | For verified checks, setup, and failure modes |
 | `docs/harness-log.md` | When changing harness structure or retiring an asset |
+| `docs/design/chrome-extension-stack.md` | Before scaffolding the extension or changing stack, browser targets, or test tooling |
 
 ## Golden Principles
 
