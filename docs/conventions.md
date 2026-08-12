@@ -2,7 +2,7 @@
 
 ## Unknowns
 
-Language-specific naming and formatting rules are intentionally absent until manifests and tooling make them discoverable. Do not invent TypeScript, JavaScript, React, Vite, npm, or test-framework conventions.
+The stack is decided in `docs/design/chrome-extension-stack.md`, but language-specific naming and formatting rules stay absent until manifests and tooling make them discoverable. Do not invent TypeScript, Vite, pnpm, UI-framework, or test-framework conventions ahead of the scaffold; no UI framework is selected.
 
 ## Extension Safety
 

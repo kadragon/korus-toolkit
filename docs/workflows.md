@@ -6,7 +6,8 @@ The repository currently uses a small backlog/Sprint Contract cycle. Keep work i
 
 1. Write `docs/design/<feature>.md` only for a multi-session or architectural decision.
 2. Record observed KORUS behavior, security impact, scope, exclusions, and open decisions.
-3. Promote one-line approved work to `backlog.md`.
+3. Promote one-line approved work to `backlog.md` under `## Now`.
+4. Append the closed item to `CHANGELOG.md` under `## Unreleased` as `- [done] <title> (<YYYY-MM-DD>) → <path to design doc, or omit>`.
 
 ## `code`
 

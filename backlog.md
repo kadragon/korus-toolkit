@@ -2,11 +2,10 @@
 
 ## Now
 
-- [ ] Define extension stack, supported browsers, Manifest version, package manager, and test strategy
+- [ ] Create the smallest installable extension restricted to `https://knue.korus.ac.kr/*`
 
 ## Next
 
-- [ ] Create the smallest installable extension restricted to `https://knue.korus.ac.kr/*`
 - [ ] Capture one user workflow and define a DOM integration contract from observed pages
 
 ## Someday

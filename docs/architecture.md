@@ -4,9 +4,9 @@
 
 - Product: browser extension for KORUS.
 - Allowed web origin: `https://knue.korus.ac.kr/`.
-- Runtime, supported browsers, Manifest version, language, build system, and test framework: undecided.
+- Supported browsers, Manifest version, language, build system, and package manager: decided in `docs/design/chrome-extension-stack.md` (Chrome and Edge, Manifest V3, TypeScript, Vite, pnpm). Test framework intent is recorded there and stays unverified until the scaffold lands.
 
-Do not convert common extension defaults into repository facts. Resolve the first backlog item before adding a manifest or source tree.
+Do not convert common extension defaults into repository facts. Record verified runtime details here only after the scaffold makes them observable.
 
 ## Intended Boundaries
 
