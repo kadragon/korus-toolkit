@@ -25,7 +25,11 @@ extension entry points -> KORUS integration adapters -> feature logic
 
 ## Source Layout
 
-No source layout exists. Record verified paths here after the stack decision and first scaffold.
+- `public/manifest.json` is the source Manifest V3 file copied into the build output.
+- `src/extension/content-script.ts` is the content-script entry point; it remains a no-op until an observed KORUS page contract exists.
+- `src/extension/*.test.ts` contains sanitized extension-boundary tests.
+- `vite.config.ts` defines the content-script build entry and output name.
+- `dist/` is generated unpacked-extension output and is not committed.
 
 ## Data and Trust Boundaries
 

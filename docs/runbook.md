@@ -2,7 +2,7 @@
 
 ## Current State
 
-Harness is Level 1. Product stack is decided in `docs/design/chrome-extension-stack.md`: Chrome and Edge, Manifest V3, TypeScript, Vite, pnpm. No scaffold, `package.json`, or manifest exists yet, so no install/build/test command is asserted until verified against the built scaffold.
+Harness is Level 1. Product stack is decided in `docs/design/chrome-extension-stack.md`: Chrome and Edge, Manifest V3, TypeScript, Vite, pnpm. The minimal exact-origin scaffold now builds an unpacked-extension artifact; KORUS workflow behavior remains deferred until an observed page contract exists.
 
 ## Harness Checks
 
@@ -17,11 +17,12 @@ Harness is Level 1. Product stack is decided in `docs/design/chrome-extension-st
 
 | Operation | Verified command |
 |-----------|------------------|
-| Install dependencies | `[unknown — select stack and run command to verify]` |
-| Build | `[unknown — select stack and run command to verify]` |
-| Test | `[unknown — select stack and run command to verify]` |
+| Install dependencies | `pnpm install` |
+| Build | `pnpm build` |
+| Test | `pnpm test` |
+| Typecheck | `pnpm typecheck` |
 | Lint/format | `[unknown — select stack and run command to verify]` |
-| Package/load extension | `[unknown — select browser and manifest format, then verify]` |
+| Package/load extension | `pnpm build`; validate `dist/manifest.json` and load `dist/` unpacked in Chrome or Edge |
 | KORUS login helper | `pwsh -File tools/korus-login.ps1` |
 
 The KORUS login helper reads `KORUS_ID` and `KORUS_PW` from the local `.env`, opens a named `korus-dev` Playwright session, and leaves it on the authenticated landing page. Use `-Headed` when visual inspection is useful. Credentials and CLI command output are not printed.
