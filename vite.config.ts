@@ -4,9 +4,15 @@ export default defineConfig({
   build: {
     emptyOutDir: true,
     rollupOptions: {
-      input: 'src/extension/content-script.ts',
+      input: {
+        contentScript: 'src/extension/content-script.ts',
+        settings: 'src/extension/settings.ts',
+      },
       output: {
-        entryFileNames: 'content-script.js',
+        entryFileNames: (chunkInfo) =>
+          chunkInfo.name === 'contentScript' || chunkInfo.name === 'settings'
+            ? `${chunkInfo.name === 'contentScript' ? 'content-script' : 'settings'}.js`
+            : 'assets/[name].js',
       },
     },
   },

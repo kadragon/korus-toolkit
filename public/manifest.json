@@ -3,6 +3,11 @@
   "name": "KORUS Toolkit",
   "version": "0.1.0",
   "description": "A focused browser extension for the KORUS workflow.",
+  "permissions": ["storage"],
+  "options_ui": {
+    "page": "settings.html",
+    "open_in_tab": true
+  },
   "action": {
     "default_title": "KORUS Toolkit"
   },

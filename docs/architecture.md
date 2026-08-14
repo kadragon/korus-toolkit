@@ -26,7 +26,9 @@ extension entry points -> KORUS integration adapters -> feature logic
 ## Source Layout
 
 - `public/manifest.json` is the source Manifest V3 file copied into the build output.
+- `public/settings.html` is the extension-local options page copied into the build output.
 - `src/extension/content-script.ts` is the content-script entry point; it remains a no-op until an observed KORUS page contract exists.
+- `src/extension/settings.ts` coordinates the options-page lifecycle; `settings-controller.ts` owns view-independent settings actions, and `settings-store.ts` owns the browser storage adapter.
 - `src/extension/*.test.ts` contains sanitized extension-boundary tests.
 - `vite.config.ts` defines the content-script build entry and output name.
 - `dist/` is generated unpacked-extension output and is not committed.
@@ -36,6 +38,7 @@ extension entry points -> KORUS integration adapters -> feature logic
 - KORUS page content is untrusted input; validate shape before use.
 - Credentials, session identifiers, cookies, employee/student data, and document content are sensitive.
 - Prefer in-memory processing. Persistence requires a named purpose, minimal fields, retention rule, and deletion path.
+- The settings page persists only the operator's one prefill phrase through extension-local storage; an empty phrase disables later insertion, and KORUS page content is not stored.
 - Browser permissions and host permissions are security boundaries, not convenience flags.
 
 ## Architecture Decision Rule
