@@ -55,8 +55,9 @@ Before any store submission, validate the generated artifact as an unpacked exte
   Manifest V3 declaration, exact KORUS origin, and only the permissions exercised by shipped
   code.
 - Confirm the output contains no remote code and no sensitive or captured KORUS material.
-- Load `dist/` unpacked in Chrome and in Microsoft Edge, as required by the repository runbook.
-  Exercise only sanitized, non-credential-backed checks; never collect or retain live KORUS
+- Load `dist/` unpacked in each target browser—Chrome and Microsoft Edge when both are in
+  release scope—following the repository runbook. Exercise only sanitized,
+  non-credential-backed checks; never collect or retain live KORUS
   page content as a release artifact.
 - Record the commit, source version, build inputs, commands completed, artifact location, and
   browser results. A failed, unavailable, or unexplained check blocks distribution.
