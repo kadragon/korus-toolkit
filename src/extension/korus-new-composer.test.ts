@@ -180,6 +180,19 @@ describe('KORUS new composer contract', () => {
     );
   });
 
+  it('reads the recipient name from KORUS option metadata', () => {
+    installFixture();
+    const recipientList = document.querySelector<HTMLSelectElement>('#selectrcvuser')!;
+    const option = document.createElement('option');
+    option.value = '홍길동 / 정보전산원 / 전산주사 / 미열람';
+    option.setAttribute('userid', 'synthetic-user');
+    option.setAttribute('type', '수신');
+    option.textContent = '홍길동 / 정보전산원 / 전산주사 / 미열람 / 수신';
+    recipientList.append(option);
+
+    expect(findFirstRecipientName(document)).toBe('홍길동');
+  });
+
   it('waits for the first recipient before inserting a placeholder phrase', async () => {
     const body = installFixture('Existing text');
     const store = createStore(`안녕하세요. ${RECIPIENT_PLACEHOLDER}님.`);

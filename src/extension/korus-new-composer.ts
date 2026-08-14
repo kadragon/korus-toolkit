@@ -109,9 +109,23 @@ export function findFirstRecipientName(pageDocument: Document): string | null {
     return null;
   }
 
-  const firstRecipient = recipientLists[0].querySelector<HTMLOptionElement>('option[username]');
-  const recipientName = firstRecipient?.getAttribute('username')?.trim();
-  return recipientName || null;
+  const recipientName = Array.from(recipientLists[0].options)
+    .map((option) => {
+      const username = option.getAttribute('username')?.trim();
+      if (username) {
+        return username;
+      }
+
+      if (!option.getAttribute('userid')?.trim()) {
+        return null;
+      }
+
+      const displayValue = option.value.trim() || option.textContent?.trim() || '';
+      return displayValue.split(/\s*\/\s*/, 1)[0]?.trim() || null;
+    })
+    .find((name): name is string => Boolean(name));
+
+  return recipientName ?? null;
 }
 
 export function resolvePhrase(pageDocument: Document, phrase: string): string | null {
