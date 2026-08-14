@@ -12,6 +12,7 @@ Harness is Level 1. Product stack is decided in `docs/design/chrome-extension-st
 | Structural harness validation | Invoke the loaded `dev:harness-init` validator from its plugin `scripts/` directory |
 | Claude pointer repair | Run the loaded plugin `scripts/sync-claude-md.sh` from the repository root |
 | Skills link repair | Run the loaded plugin `scripts/symlink-guard.sh` from the repository root |
+| Task-review on Windows | Use native Windows Git and GitHub CLI for commit/push/PR when WSL Bash cannot resolve `jq`/`node` or stages CRLF-only changes |
 
 ## Product Commands
 
