@@ -5,6 +5,14 @@ import {
 } from './korus-new-composer';
 import { createPhraseStore, type PhraseStore } from './settings-store';
 
+const EDITABLE_BODY_SELECTOR = 'div.note-editable[contenteditable="true"]';
+const RECIPIENT_LIST_SELECTOR = 'select#selectrcvuser';
+
+function findObservationTarget(pageDocument: Document): Node {
+  const recipientList = pageDocument.querySelector<HTMLElement>(RECIPIENT_LIST_SELECTOR);
+  return recipientList?.parentElement ?? pageDocument.body!;
+}
+
 export function observeComposer(
   store: PhraseStore,
   pageDocument: Document,
@@ -15,17 +23,38 @@ export function observeComposer(
   }
 
   let observer: MutationObserver | undefined;
+  let observedTarget: Node | undefined;
+  const retargetObserver = (): void => {
+    const target = findObservationTarget(pageDocument);
+    if (target === observedTarget) {
+      return;
+    }
+
+    observer?.disconnect();
+    observer?.observe(target, { childList: true, subtree: true });
+    observedTarget = target;
+  };
+
   const attemptPrefill = async (): Promise<void> => {
     const inserted = await prefillComposer(store, pageDocument, pageLocation);
     if (inserted) {
       observer?.disconnect();
+      return;
     }
+
+    retargetObserver();
   };
 
-  observer = new MutationObserver(() => {
+  observer = new MutationObserver((mutations) => {
+    const editableBody = pageDocument.querySelector<HTMLElement>(EDITABLE_BODY_SELECTOR);
+    if (editableBody && mutations.every(({ target }) => editableBody.contains(target))) {
+      return;
+    }
+
+    retargetObserver();
     void attemptPrefill();
   });
-  observer.observe(pageDocument.body, { childList: true, subtree: true });
+  retargetObserver();
   void attemptPrefill();
   return observer;
 }

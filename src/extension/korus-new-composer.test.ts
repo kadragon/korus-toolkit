@@ -297,4 +297,25 @@ describe('KORUS new composer contract', () => {
     expect(body.textContent).toBe('안녕하세요. 홍길동님.Existing content');
     observer?.disconnect();
   });
+
+  it('ignores editor mutations while waiting for the first recipient', async () => {
+    const body = installReplyFixture('Existing content');
+    const store = createStore(`안녕하세요. ${RECIPIENT_PLACEHOLDER}님.`);
+    const observer = observeComposer(store, document, matchingReplyPage);
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const load = vi.mocked(store.load);
+    const loadCountBeforeTyping = load.mock.calls.length;
+
+    body.append(document.createTextNode('typed content'));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(load).toHaveBeenCalledTimes(loadCountBeforeTyping);
+
+    addRecipient('홍길동');
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(body.textContent).toBe('안녕하세요. 홍길동님.Existing contenttyped content');
+    observer?.disconnect();
+  });
 });
