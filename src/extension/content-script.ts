@@ -1,11 +1,11 @@
 import {
-  isNewComposerPage,
-  prefillNewComposer,
+  isComposerPage,
+  prefillComposer,
   type PageLocation,
 } from './korus-new-composer';
 import { createPhraseStore, type PhraseStore } from './settings-store';
 
-export function observeNewComposer(
+export function observeComposer(
   store: PhraseStore,
   pageDocument: Document,
   pageLocation: PageLocation,
@@ -16,7 +16,7 @@ export function observeNewComposer(
 
   let observer: MutationObserver | undefined;
   const attemptPrefill = async (): Promise<void> => {
-    const inserted = await prefillNewComposer(store, pageDocument, pageLocation);
+    const inserted = await prefillComposer(store, pageDocument, pageLocation);
     if (inserted) {
       observer?.disconnect();
     }
@@ -30,12 +30,20 @@ export function observeNewComposer(
   return observer;
 }
 
+export function observeNewComposer(
+  store: PhraseStore,
+  pageDocument: Document,
+  pageLocation: PageLocation,
+): MutationObserver | undefined {
+  return observeComposer(store, pageDocument, pageLocation);
+}
+
 export function startContentScript(): void {
   if (typeof window === 'undefined' || typeof document === 'undefined') {
     return;
   }
 
-  if (!isNewComposerPage(window.location) || !document.body) {
+  if (!isComposerPage(window.location) || !document.body) {
     return;
   }
 
@@ -46,7 +54,7 @@ export function startContentScript(): void {
     return;
   }
 
-  observeNewComposer(store, document, window.location);
+  observeComposer(store, document, window.location);
 }
 
 startContentScript();

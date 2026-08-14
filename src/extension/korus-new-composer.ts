@@ -2,6 +2,7 @@ import { isPhraseEnabled, type PhraseStore } from './settings-store';
 
 export const KORUS_ORIGIN = 'https://knue.korus.ac.kr';
 export const NEW_COMPOSER_PATH = '/bms/wcm/bizAddView.do';
+export const REPLY_COMPOSER_PATH = '/bms/wcm/bizAnswerView.do';
 const PREFILLED_ATTRIBUTE = 'data-korus-toolkit-prefilled';
 
 export interface PageLocation {
@@ -17,6 +18,14 @@ export function isNewComposerPage(pageLocation: PageLocation): boolean {
   return pageLocation.origin === KORUS_ORIGIN && pageLocation.pathname === NEW_COMPOSER_PATH;
 }
 
+export function isReplyComposerPage(pageLocation: PageLocation): boolean {
+  return pageLocation.origin === KORUS_ORIGIN && pageLocation.pathname === REPLY_COMPOSER_PATH;
+}
+
+export function isComposerPage(pageLocation: PageLocation): boolean {
+  return isNewComposerPage(pageLocation) || isReplyComposerPage(pageLocation);
+}
+
 function isVisible(element: HTMLElement): boolean {
   if (element.hidden || element.getAttribute('aria-hidden') === 'true') {
     return false;
@@ -30,23 +39,51 @@ function isVisible(element: HTMLElement): boolean {
   return element.getClientRects().length > 0;
 }
 
-export function findNewComposerBody(
+export function findComposerBody(
   pageDocument: Document,
   pageLocation: PageLocation,
 ): HTMLDivElement | null {
-  if (!isNewComposerPage(pageLocation)) {
+  if (!isComposerPage(pageLocation)) {
     return null;
   }
 
-  const markers = Array.from(pageDocument.querySelectorAll<HTMLElement>(PAGE_MARKER_SELECTOR))
-    .filter(isVisible)
-    .filter((element) => element.textContent?.trim() === '메일쓰기');
-  if (markers.length !== 1) {
+  const hasPageMarker = isNewComposerPage(pageLocation)
+    ? Array.from(pageDocument.querySelectorAll<HTMLElement>(PAGE_MARKER_SELECTOR))
+        .filter(isVisible)
+        .filter((element) => element.textContent === '메일쓰기').length === 1
+    : pageDocument.title === '메일쓰기';
+  if (!hasPageMarker) {
     return null;
   }
 
   const bodies = Array.from(pageDocument.querySelectorAll<HTMLDivElement>(BODY_SELECTOR)).filter(isVisible);
   return bodies.length === 1 ? bodies[0] : null;
+}
+
+export function findNewComposerBody(
+  pageDocument: Document,
+  pageLocation: PageLocation,
+): HTMLDivElement | null {
+  return findComposerBody(pageDocument, pageLocation);
+}
+
+function appendPhraseNodes(
+  ownerDocument: Document,
+  phrase: string,
+): DocumentFragment {
+  const fragment = ownerDocument.createDocumentFragment();
+  const lines = phrase.replace(/\r\n?/g, '\n').split('\n');
+
+  lines.forEach((line, index) => {
+    if (index > 0) {
+      fragment.append(ownerDocument.createElement('br'));
+    }
+    if (line.length > 0) {
+      fragment.append(ownerDocument.createTextNode(line));
+    }
+  });
+
+  return fragment;
 }
 
 export function insertPhraseOnce(body: HTMLDivElement, phrase: string): boolean {
@@ -58,19 +95,18 @@ export function insertPhraseOnce(body: HTMLDivElement, phrase: string): boolean 
     return false;
   }
 
-  const textNode = body.ownerDocument.createTextNode(phrase);
-  body.insertBefore(textNode, body.firstChild);
+  body.insertBefore(appendPhraseNodes(body.ownerDocument, phrase), body.firstChild);
   body.setAttribute(PREFILLED_ATTRIBUTE, 'true');
   insertedBodies.add(body);
   return true;
 }
 
-export async function prefillNewComposer(
+export async function prefillComposer(
   store: PhraseStore,
   pageDocument: Document,
   pageLocation: PageLocation,
 ): Promise<boolean> {
-  const body = findNewComposerBody(pageDocument, pageLocation);
+  const body = findComposerBody(pageDocument, pageLocation);
   if (!body || insertedBodies.has(body) || body.hasAttribute(PREFILLED_ATTRIBUTE)) {
     return false;
   }
@@ -82,9 +118,17 @@ export async function prefillNewComposer(
     return false;
   }
 
-  if (findNewComposerBody(pageDocument, pageLocation) !== body) {
+  if (findComposerBody(pageDocument, pageLocation) !== body) {
     return false;
   }
 
   return insertPhraseOnce(body, phrase);
+}
+
+export async function prefillNewComposer(
+  store: PhraseStore,
+  pageDocument: Document,
+  pageLocation: PageLocation,
+): Promise<boolean> {
+  return prefillComposer(store, pageDocument, pageLocation);
 }
