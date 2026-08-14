@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- [done] Recipient-aware mail prefill (2026-08-14) → docs/design/korus-mail-prefill.md
 - [done] Support mail prefill line breaks and replies (2026-08-14) → docs/design/korus-mail-prefill.md
 - [done] Insert configured phrase in new 업무메일 composers (2026-08-14) → docs/design/korus-mail-prefill.md
 - [done] Add local mail prefill settings surface (2026-08-14) → docs/design/korus-mail-prefill.md

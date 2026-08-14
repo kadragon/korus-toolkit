@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import {
   findComposerBody,
+  findFirstRecipientName,
   findNewComposerBody,
   insertPhraseOnce,
   isComposerPage,
@@ -11,7 +12,9 @@ import {
   isReplyComposerPage,
   prefillComposer,
   prefillNewComposer,
+  RECIPIENT_PLACEHOLDER,
   REPLY_COMPOSER_PATH,
+  resolvePhrase,
   type PageLocation,
 } from './korus-new-composer';
 import { observeComposer, observeNewComposer } from './content-script';
@@ -41,6 +44,7 @@ function installFixture(bodyMarkup = ''): HTMLDivElement {
   document.body.className = '';
   document.body.innerHTML = `
     <h2 data-marker>메일쓰기</h2>
+    <select id="selectrcvuser" name="selectrcvuser"></select>
     <div class="note-editable" contenteditable="true" data-body>${bodyMarkup}</div>
   `;
   markVisible('[data-marker], [data-body]');
@@ -52,6 +56,7 @@ function installReplyFixture(bodyMarkup = '<br><br><p>Quoted content</p>'): HTML
   document.body.className = 'memo';
   document.body.innerHTML = `
     <div class="note-editable" contenteditable="true" data-body>${bodyMarkup}</div>
+    <select id="selectrcvuser" name="selectrcvuser"></select>
   `;
   markVisible('[data-body]');
   return document.querySelector<HTMLDivElement>('[data-body]')!;
@@ -62,6 +67,14 @@ function createStore(phrase: string): PhraseStore {
     load: vi.fn(async () => phrase),
     save: vi.fn(async () => undefined),
   };
+}
+
+function addRecipient(name: string): HTMLOptionElement {
+  const recipientList = document.querySelector<HTMLSelectElement>('#selectrcvuser')!;
+  const option = document.createElement('option');
+  option.setAttribute('username', name);
+  recipientList.append(option);
+  return option;
 }
 
 describe('KORUS new composer contract', () => {
@@ -155,6 +168,34 @@ describe('KORUS new composer contract', () => {
     expect(body.textContent).toBe('Existing text');
   });
 
+  it('resolves the placeholder from the first recipient only', () => {
+    installFixture();
+    document.querySelector<HTMLSelectElement>('#selectrcvuser')!.append(document.createElement('option'));
+    addRecipient('홍길동');
+    addRecipient('김철수');
+
+    expect(findFirstRecipientName(document)).toBe('홍길동');
+    expect(resolvePhrase(document, `안녕하세요. ${RECIPIENT_PLACEHOLDER}님.`)).toBe(
+      '안녕하세요. 홍길동님.',
+    );
+  });
+
+  it('waits for the first recipient before inserting a placeholder phrase', async () => {
+    const body = installFixture('Existing text');
+    const store = createStore(`안녕하세요. ${RECIPIENT_PLACEHOLDER}님.`);
+
+    await expect(prefillComposer(store, document, matchingPage)).resolves.toBe(false);
+    expect(body.textContent).toBe('Existing text');
+
+    addRecipient('홍길동');
+    await expect(prefillComposer(store, document, matchingPage)).resolves.toBe(true);
+    expect(body.textContent).toBe('안녕하세요. 홍길동님.Existing text');
+
+    addRecipient('김철수');
+    await expect(prefillComposer(store, document, matchingPage)).resolves.toBe(false);
+    expect(body.textContent).toBe('안녕하세요. 홍길동님.Existing text');
+  });
+
   it('loads and inserts the phrase once across repeated observations', async () => {
     const body = installFixture('Existing text');
     const store = createStore('안녕하세요\n');
@@ -177,6 +218,16 @@ describe('KORUS new composer contract', () => {
       '첫 줄<br>둘째 줄<br><br><p>Quoted first line</p><p>Quoted second line</p>',
     );
     expect(store.load).toHaveBeenCalledTimes(1);
+  });
+
+  it('prefills a reply with the first known recipient', async () => {
+    const body = installReplyFixture('<br><br><p>Quoted content</p>');
+    addRecipient('홍길동');
+    const store = createStore(`안녕하세요. ${RECIPIENT_PLACEHOLDER}님.`);
+
+    await expect(prefillComposer(store, document, matchingReplyPage)).resolves.toBe(true);
+
+    expect(body.innerHTML).toBe('안녕하세요. 홍길동님.<br><br><p>Quoted content</p>');
   });
 
   it('fails closed when phrase storage is unavailable', async () => {
@@ -229,6 +280,21 @@ describe('KORUS new composer contract', () => {
 
     expect(body.innerHTML).toBe('Reply phrase<br><br><p>Quoted content</p>');
     expect(store.load).toHaveBeenCalledTimes(1);
+    observer?.disconnect();
+  });
+
+  it('keeps observing until the first recipient is available', async () => {
+    const body = installReplyFixture('Existing content');
+    const store = createStore(`안녕하세요. ${RECIPIENT_PLACEHOLDER}님.`);
+    const observer = observeComposer(store, document, matchingReplyPage);
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(body.textContent).toBe('Existing content');
+
+    addRecipient('홍길동');
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(body.textContent).toBe('안녕하세요. 홍길동님.Existing content');
     observer?.disconnect();
   });
 });

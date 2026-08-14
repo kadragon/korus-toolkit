@@ -15,6 +15,7 @@
     {
       "matches": ["https://knue.korus.ac.kr/*"],
       "js": ["content-script.js"],
+      "all_frames": true,
       "run_at": "document_idle"
     }
   ]

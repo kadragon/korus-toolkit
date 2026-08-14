@@ -3,6 +3,7 @@ import { isPhraseEnabled, type PhraseStore } from './settings-store';
 export const KORUS_ORIGIN = 'https://knue.korus.ac.kr';
 export const NEW_COMPOSER_PATH = '/bms/wcm/bizAddView.do';
 export const REPLY_COMPOSER_PATH = '/bms/wcm/bizAnswerView.do';
+export const RECIPIENT_PLACEHOLDER = '{{받는 사람}}';
 const PREFILLED_ATTRIBUTE = 'data-korus-toolkit-prefilled';
 
 export interface PageLocation {
@@ -12,6 +13,7 @@ export interface PageLocation {
 
 const PAGE_MARKER_SELECTOR = 'h1, h2, h3, h4, h5, h6, td.pupup_title';
 const BODY_SELECTOR = 'div.note-editable[contenteditable="true"]';
+const RECIPIENT_LIST_SELECTOR = 'select#selectrcvuser';
 const insertedBodies = new WeakSet<HTMLDivElement>();
 
 export function isNewComposerPage(pageLocation: PageLocation): boolean {
@@ -101,6 +103,26 @@ export function insertPhraseOnce(body: HTMLDivElement, phrase: string): boolean 
   return true;
 }
 
+export function findFirstRecipientName(pageDocument: Document): string | null {
+  const recipientLists = pageDocument.querySelectorAll<HTMLSelectElement>(RECIPIENT_LIST_SELECTOR);
+  if (recipientLists.length !== 1) {
+    return null;
+  }
+
+  const firstRecipient = recipientLists[0].querySelector<HTMLOptionElement>('option[username]');
+  const recipientName = firstRecipient?.getAttribute('username')?.trim();
+  return recipientName || null;
+}
+
+export function resolvePhrase(pageDocument: Document, phrase: string): string | null {
+  if (!phrase.includes(RECIPIENT_PLACEHOLDER)) {
+    return phrase;
+  }
+
+  const recipientName = findFirstRecipientName(pageDocument);
+  return recipientName ? phrase.replaceAll(RECIPIENT_PLACEHOLDER, recipientName) : null;
+}
+
 export async function prefillComposer(
   store: PhraseStore,
   pageDocument: Document,
@@ -118,11 +140,16 @@ export async function prefillComposer(
     return false;
   }
 
+  const resolvedPhrase = resolvePhrase(pageDocument, phrase);
+  if (resolvedPhrase === null) {
+    return false;
+  }
+
   if (findComposerBody(pageDocument, pageLocation) !== body) {
     return false;
   }
 
-  return insertPhraseOnce(body, phrase);
+  return insertPhraseOnce(body, resolvedPhrase);
 }
 
 export async function prefillNewComposer(
