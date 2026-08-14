@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "KORUS Toolkit",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A focused browser extension for the KORUS workflow.",
   "permissions": ["storage"],
   "options_ui": {
@@ -15,6 +15,7 @@
     {
       "matches": ["https://knue.korus.ac.kr/*"],
       "js": ["content-script.js"],
+      "all_frames": true,
       "run_at": "document_idle"
     }
   ]
