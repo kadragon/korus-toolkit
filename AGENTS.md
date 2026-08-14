@@ -13,6 +13,7 @@ Browser-extension repository targeting `https://knue.korus.ac.kr/`. Stack is dec
 | `docs/runbook.md` | For verified checks, setup, and failure modes |
 | `docs/harness-log.md` | When changing harness structure or retiring an asset |
 | `docs/design/chrome-extension-stack.md` | Before scaffolding the extension or changing stack, browser targets, or test tooling |
+| `docs/design/chrome-extension-release.md` | Before packaging or distributing a Chrome/Edge release |
 | `docs/design/korus-mail-prefill.md` | Before changing the KORUS mail workflow contract or prefill behavior |
 
 ## Golden Principles
