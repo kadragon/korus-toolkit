@@ -26,7 +26,7 @@ Add a Chromium extension feature that lets the operator save one prefill phrase 
 
 ## Testing Decisions
 
-- Add Vitest unit/integration coverage using sanitized DOM fixtures for new compose, reply compose, existing body text, quoted content, repeated observation, empty phrase, special characters, and selector/page-state mismatch cases.
+- Add Vitest unit/integration coverage using sanitized DOM fixtures for the observed new-composer shape, existing body text, repeated observation, empty phrase, special characters, and selector/page-state mismatch cases. Defer reply-composer and quoted-content fixtures until the reply workflow contract exists.
 - Add extension smoke coverage for loading the built Manifest V3 extension and the settings/content-script lifecycle when the scaffold provides the corresponding scripts.
 - Run `pnpm test`, `pnpm build`, and `pwsh -File tools/check-principles.ps1` once the scaffold defines these commands and product files exist. Keep live KORUS verification manual and credential-backed through the existing helper; do not commit captured page data.
 
@@ -37,7 +37,7 @@ Observed on 2026-08-14 through the existing credential-backed browser helper. Th
 1. The authenticated landing page is at `/poc/mi/IndxCtr/indx.do` on the exact KORUS origin.
 2. The landing page exposes an `업무관리` entry point. The resulting same-origin application shell contains a top frame at `/bms/top.do`.
 3. The top frame exposes an `업무메일` navigation label. Its visible anchor uses `href="#"`; the adjacent `.over` control dispatches the observed `MGRP_WCM` menu action and loads `/bms/wcm/menu_wcm.do` into the left menu frame.
-4. The mail menu exposes a `메일쓰기` entry. Its observed action opens `/bms/wcm/bizAddView.do` as a separate same-origin compose page.
+4. The mail menu exposes a `메일쓰기` entry. Its observed action opens `/bms/wcm/bizAddView.do` as a separate top-level same-origin compose page (popup).
 
 The captured workflow covers new mail composition only. Reply composition and quoted-content markers remain unobserved and must not be inferred from this contract.
 
@@ -48,11 +48,11 @@ The new composer is recognized only when all of the following are true:
 - `location.origin` is `https://knue.korus.ac.kr`.
 - `location.pathname` is `/bms/wcm/bizAddView.do`.
 - A visible heading or table cell has the exact accessible text `메일쓰기`.
-- Exactly one visible `input#title[name="title"]` exists for the subject field.
-- Exactly one visible `input#txtUsername_test[name="txtUsername_test"]` exists for recipient entry.
 - Exactly one visible `div.note-editable[contenteditable="true"]` exists for the editable body.
 
-The page also contains a hidden `input#editBoxVal[name="contents"]` and a visible `textarea#sign[name="sign"]`. Neither is the observed body target: the former is hidden state, and the latter's semantic relationship to the composer body was not established.
+The observed composer context also contains exactly one visible `input#title[name="title"]` subject control and exactly one visible `input#txtUsername_test[name="txtUsername_test"]` recipient control. These controls are documented context markers, not recognition gates for a body-only integration.
+
+The page also contains a hidden `input#editBoxVal[name="contents"]` and a visible `textarea#sign[name="sign"]`. Neither is the observed body target: the former is hidden state, and the latter's semantic relationship to the composer body was not established. Synchronization between the visible editor and the hidden `contents` mirror was not observed; future insertion must verify the host editor's synchronization path before relying on submitted contents.
 
 Integration code must fail closed when the origin, path, page marker, or any required target is absent or ambiguous. Body operations, when later implemented, may address only the validated visible `.note-editable` target. This ticket does not authorize insertion, sending, recipient changes, or any other page mutation.
 
@@ -77,6 +77,6 @@ Sanitized fixture shape for future tests:
 
 ## Further Notes
 
-- The existing backlog items for the smallest installable exact-origin extension and a sanitized observed KORUS workflow are prerequisites for this feature.
+- The smallest installable exact-origin extension and the new-composer workflow contract are complete prerequisites for this feature. Reply workflow capture remains a separate review follow-up.
 - The new-composer selectors and page-state markers above are directly observed. Reply-composer selectors, quoted-content boundaries, and any insertion behavior remain unknown; product code must not invent them.
 - The feature should remain usable when the saved phrase is changed or cleared without requiring KORUS data migration.
