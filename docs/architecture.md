@@ -27,10 +27,11 @@ extension entry points -> KORUS integration adapters -> feature logic
 
 - `public/manifest.json` is the source Manifest V3 file copied into the build output.
 - `public/settings.html` is the extension-local options page copied into the build output.
-- `src/extension/content-script.ts` is the content-script entry point; it remains a no-op until an observed KORUS page contract exists.
+- `src/extension/content-script.ts` is the content-script entry point; it coordinates the observed new-composer lifecycle only.
+- `src/extension/korus-new-composer.ts` is the KORUS integration adapter for the observed new-composer page state, visible body selector, and text-only insertion operation.
 - `src/extension/settings.ts` coordinates the options-page lifecycle; `settings-controller.ts` owns view-independent settings actions, and `settings-store.ts` owns the browser storage adapter.
 - `src/extension/*.test.ts` contains sanitized extension-boundary tests.
-- `vite.config.ts` defines the content-script build entry and output name.
+- `vite.config.ts` defines separate content-script and settings build passes so the classic content-script artifact has no module imports.
 - `dist/` is generated unpacked-extension output and is not committed.
 
 ## Data and Trust Boundaries
@@ -39,6 +40,7 @@ extension entry points -> KORUS integration adapters -> feature logic
 - Credentials, session identifiers, cookies, employee/student data, and document content are sensitive.
 - Prefer in-memory processing. Persistence requires a named purpose, minimal fields, retention rule, and deletion path.
 - The settings page persists only the operator's one prefill phrase through extension-local storage; an empty phrase disables later insertion, and KORUS page content is not stored.
+- The new-composer adapter reads only the configured phrase and mutates only the validated visible editor on the exact observed page; unsupported page states fail closed.
 - Browser permissions and host permissions are security boundaries, not convenience flags.
 
 ## Architecture Decision Rule

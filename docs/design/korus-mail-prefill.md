@@ -47,14 +47,14 @@ The new composer is recognized only when all of the following are true:
 
 - `location.origin` is `https://knue.korus.ac.kr`.
 - `location.pathname` is `/bms/wcm/bizAddView.do`.
-- A visible heading or table cell has the exact accessible text `메일쓰기`.
+- A visible heading has the exact accessible text `메일쓰기`, or the observed visible `td.pupup_title` table-cell marker has that exact text.
 - Exactly one visible `div.note-editable[contenteditable="true"]` exists for the editable body.
 
 The observed composer context also contains exactly one visible `input#title[name="title"]` subject control and exactly one visible `input#txtUsername_test[name="txtUsername_test"]` recipient control. These controls are documented context markers, not recognition gates for a body-only integration.
 
-The page also contains a hidden `input#editBoxVal[name="contents"]` and a visible `textarea#sign[name="sign"]`. Neither is the observed body target: the former is hidden state, and the latter's semantic relationship to the composer body was not established. Synchronization between the visible editor and the hidden `contents` mirror was not observed; future insertion must verify the host editor's synchronization path before relying on submitted contents.
+The page also contains a hidden `input#editBoxVal[name="contents"]` and a visible `textarea#sign[name="sign"]`. Neither is the observed body target: the former is hidden state, and the latter's semantic relationship to the composer body was not established. A synthetic typing check did not immediately change the hidden mirror; the observed host send path copies the visible `#editBox` HTML into `#editBoxVal` before submission. Extension insertion therefore targets only the validated visible editor, never writes the hidden field directly, and does not claim to send or verify a message.
 
-Integration code must fail closed when the origin, path, page marker, or any required target is absent or ambiguous. Body operations, when later implemented, may address only the validated visible `.note-editable` target. This ticket does not authorize insertion, sending, recipient changes, or any other page mutation.
+Integration code must fail closed when the origin, path, page marker, or any required target is absent or ambiguous. The new-mail prefill task authorizes only text-safe insertion into the validated visible `.note-editable` target; it does not authorize sending, recipient changes, hidden-field writes, or other KORUS actions.
 
 Sanitized fixture shape for future tests:
 
