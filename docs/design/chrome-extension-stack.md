@@ -31,7 +31,7 @@ Build a Chromium browser extension for Chrome and Microsoft Edge with Manifest V
 - **Extension smoke:** Playwright against the bundled Chromium runtime for loading the built Manifest V3 extension and checking the minimal lifecycle. Chrome and Edge manual load checks cover browser-specific packaging behavior.
 - **Safety check:** Run `pwsh -File tools/check-principles.ps1` whenever product files or a manifest exist.
 - **KORUS verification:** Live credential-backed checks remain explicit manual checks through the existing helper; credentials and captured page data never enter CI or fixtures.
-- **Planned commands:** `pnpm install`, `pnpm build`, and `pnpm test` are the intended workflow commands and must be verified when the scaffold adds the corresponding scripts.
+- **Verified commands:** `pnpm install`, `pnpm build`, `pnpm test`, and `pnpm typecheck` are defined by the scaffold; the exact-origin manifest and generated content script are checked by `tools/check-principles.ps1` and the scaffold verification.
 
 ## Out of Scope
 
@@ -43,6 +43,6 @@ Build a Chromium browser extension for Chrome and Microsoft Edge with Manifest V
 
 ## Further Notes
 
-- The next implementation slice is the smallest installable extension using this decision set.
-- `pnpm` was selected by the operator but was not visible in the current shell when checked; refresh the terminal PATH before implementation.
+- The smallest installable exact-origin scaffold now exists; the next implementation slice is the observed KORUS workflow contract.
+- `pnpm` is available in the implementation shell; verified commands and remaining manual browser checks live in `docs/runbook.md`.
 - Minimum browser versions remain unspecified until the scaffold uses APIs that require them.
