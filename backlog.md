@@ -4,13 +4,9 @@
 
 - [x] Create the smallest installable extension restricted to `https://knue.korus.ac.kr/*`
 
-## New 업무메일 prefill
-
-- [ ] [FEAT] Insert the configured phrase once in new 업무메일 composers
-
 ## Reply 업무메일 prefill
 
-- [ ] [FEAT] Insert the configured phrase once in reply composers *(blocked by: 2-new-mail-prefill)* *(blocked by: pr-3-reply-workflow-contract)*
+- [ ] [FEAT] Insert the configured phrase once in reply composers *(blocked by: pr-3-reply-workflow-contract)*
 
 ## Review Backlog
 

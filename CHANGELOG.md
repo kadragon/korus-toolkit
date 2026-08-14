@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- [done] Insert configured phrase in new 업무메일 composers (2026-08-14) → docs/design/korus-mail-prefill.md
 - [done] Add local mail prefill settings surface (2026-08-14) → docs/design/korus-mail-prefill.md
 - [done] Release packaging and store distribution policy (1 units) (2026-08-14)
 - [done] Capture KORUS mail workflow contract (2026-08-14) → docs/design/korus-mail-prefill.md
