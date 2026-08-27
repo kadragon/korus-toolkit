@@ -12,13 +12,14 @@ import {
   isReplyComposerPage,
   prefillComposer,
   prefillNewComposer,
+  RANK_PLACEHOLDER,
   RECIPIENT_PLACEHOLDER,
   REPLY_COMPOSER_PATH,
   resolvePhrase,
   type PageLocation,
 } from './korus-new-composer';
 import { observeComposer, observeNewComposer } from './content-script';
-import type { PhraseStore } from './settings-store';
+import type { PhraseSettings, PhraseStore } from './settings-store';
 
 const matchingPage: PageLocation = {
   origin: 'https://knue.korus.ac.kr',
@@ -64,7 +65,14 @@ function installReplyFixture(bodyMarkup = '<br><br><p>Quoted content</p>'): HTML
 
 function createStore(phrase: string): PhraseStore {
   return {
-    load: vi.fn(async () => phrase),
+    load: vi.fn(async (): Promise<PhraseSettings> => ({ phrase, placeholder: '' })),
+    save: vi.fn(async () => undefined),
+  };
+}
+
+function createRankStore(phrase: string, placeholder: string): PhraseStore {
+  return {
+    load: vi.fn(async (): Promise<PhraseSettings> => ({ phrase, placeholder })),
     save: vi.fn(async () => undefined),
   };
 }
@@ -178,6 +186,20 @@ describe('KORUS new composer contract', () => {
     expect(resolvePhrase(document, `안녕하세요. ${RECIPIENT_PLACEHOLDER}님.`)).toBe(
       '안녕하세요. 홍길동님.',
     );
+  });
+
+  it('resolves every rank placeholder from the configured value', () => {
+    installFixture();
+    const phrase = `안녕하세요, ${RANK_PLACEHOLDER}. ${RANK_PLACEHOLDER}`;
+
+    expect(resolvePhrase(document, phrase, '팀장님')).toBe('안녕하세요, 팀장님. 팀장님');
+  });
+
+  it('does not resolve a rank placeholder when its configured value is blank', () => {
+    installFixture();
+
+    expect(resolvePhrase(document, `안녕하세요, ${RANK_PLACEHOLDER}.`)).toBeNull();
+    expect(resolvePhrase(document, `안녕하세요, ${RANK_PLACEHOLDER}.`, '  ')).toBeNull();
   });
 
   it('reads the recipient name from KORUS option metadata', () => {
@@ -309,6 +331,22 @@ describe('KORUS new composer contract', () => {
 
     expect(body.textContent).toBe('안녕하세요. 홍길동님.Existing content');
     observer?.disconnect();
+  });
+
+  it('prefills a configured rank without changing the placeholder token', async () => {
+    const body = installFixture('Existing text');
+    const store = createRankStore(`안녕하세요. ${RANK_PLACEHOLDER}`, '연구사님');
+
+    await expect(prefillComposer(store, document, matchingPage)).resolves.toBe(true);
+    expect(body.textContent).toBe('안녕하세요. 연구사님Existing text');
+  });
+
+  it('waits when a rank placeholder has no configured value', async () => {
+    const body = installFixture('Existing text');
+    const store = createStore(`안녕하세요. ${RANK_PLACEHOLDER}`);
+
+    await expect(prefillComposer(store, document, matchingPage)).resolves.toBe(false);
+    expect(body.textContent).toBe('Existing text');
   });
 
   it('ignores editor mutations while waiting for the first recipient', async () => {

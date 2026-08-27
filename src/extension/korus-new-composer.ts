@@ -3,6 +3,7 @@ import { isPhraseEnabled, type PhraseStore } from './settings-store';
 export const KORUS_ORIGIN = 'https://knue.korus.ac.kr';
 export const NEW_COMPOSER_PATH = '/bms/wcm/bizAddView.do';
 export const REPLY_COMPOSER_PATH = '/bms/wcm/bizAnswerView.do';
+export const RANK_PLACEHOLDER = '{{placeholder}}';
 export const RECIPIENT_PLACEHOLDER = '{{받는 사람}}';
 const PREFILLED_ATTRIBUTE = 'data-korus-toolkit-prefilled';
 
@@ -128,13 +129,32 @@ export function findFirstRecipientName(pageDocument: Document): string | null {
   return recipientName ?? null;
 }
 
-export function resolvePhrase(pageDocument: Document, phrase: string): string | null {
-  if (!phrase.includes(RECIPIENT_PLACEHOLDER)) {
-    return phrase;
+export function resolvePhrase(
+  pageDocument: Document,
+  phrase: string,
+  placeholder = '',
+): string | null {
+  let resolvedPhrase = phrase;
+
+  if (resolvedPhrase.includes(RANK_PLACEHOLDER)) {
+    const rank = placeholder.trim();
+    if (!rank) {
+      return null;
+    }
+
+    resolvedPhrase = resolvedPhrase.replaceAll(RANK_PLACEHOLDER, () => rank);
   }
 
-  const recipientName = findFirstRecipientName(pageDocument);
-  return recipientName ? phrase.replaceAll(RECIPIENT_PLACEHOLDER, recipientName) : null;
+  if (resolvedPhrase.includes(RECIPIENT_PLACEHOLDER)) {
+    const recipientName = findFirstRecipientName(pageDocument);
+    if (!recipientName) {
+      return null;
+    }
+
+    resolvedPhrase = resolvedPhrase.replaceAll(RECIPIENT_PLACEHOLDER, () => recipientName);
+  }
+
+  return resolvedPhrase;
 }
 
 export async function prefillComposer(
@@ -147,14 +167,14 @@ export async function prefillComposer(
     return false;
   }
 
-  let phrase: string;
+  let settings;
   try {
-    phrase = await store.load();
+    settings = await store.load();
   } catch {
     return false;
   }
 
-  const resolvedPhrase = resolvePhrase(pageDocument, phrase);
+  const resolvedPhrase = resolvePhrase(pageDocument, settings.phrase, settings.placeholder);
   if (resolvedPhrase === null) {
     return false;
   }

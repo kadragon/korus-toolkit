@@ -12,6 +12,7 @@ function requiredElement<T extends Element>(selector: string): T {
 
 const form = requiredElement<HTMLFormElement>('#settings-form');
 const phraseInput = requiredElement<HTMLTextAreaElement>('#prefill-phrase');
+const placeholderInput = requiredElement<HTMLInputElement>('#prefill-placeholder');
 const clearButton = requiredElement<HTMLButtonElement>('#clear-button');
 const status = requiredElement<HTMLElement>('#settings-status');
 
@@ -19,6 +20,10 @@ const view: SettingsView = {
   getPhrase: () => phraseInput.value,
   setPhrase: (phrase) => {
     phraseInput.value = phrase;
+  },
+  getPlaceholder: () => placeholderInput.value,
+  setPlaceholder: (placeholder) => {
+    placeholderInput.value = placeholder;
   },
   setStatus: (message) => {
     status.textContent = message;
@@ -39,5 +44,5 @@ try {
 
   void controller.load();
 } catch {
-  view.setStatus('Extension storage is unavailable.');
+  view.setStatus('확장 프로그램 저장소를 사용할 수 없습니다.');
 }

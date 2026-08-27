@@ -1,12 +1,18 @@
 export const PREFILL_PHRASE_KEY = 'prefillPhrase';
+export const PREFILL_PLACEHOLDER_KEY = 'prefillPlaceholder';
+
+export interface PhraseSettings {
+  phrase: string;
+  placeholder: string;
+}
 
 export interface PhraseStore {
-  load(): Promise<string>;
-  save(phrase: string): Promise<void>;
+  load(): Promise<PhraseSettings>;
+  save(settings: PhraseSettings): Promise<void>;
 }
 
 export interface ExtensionStorageArea {
-  get(keys: string, callback: (items: Record<string, unknown>) => void): void;
+  get(keys: string | string[], callback: (items: Record<string, unknown>) => void): void;
   set(items: Record<string, string>, callback: () => void): void;
 }
 
@@ -31,27 +37,37 @@ export function getExtensionApi(): ExtensionApi {
 export function createPhraseStore(api: ExtensionApi = getExtensionApi()): PhraseStore {
   return {
     load: () =>
-      new Promise<string>((resolve, reject) => {
-        api.storage.local.get(PREFILL_PHRASE_KEY, (items) => {
+      new Promise<PhraseSettings>((resolve, reject) => {
+        api.storage.local.get([PREFILL_PHRASE_KEY, PREFILL_PLACEHOLDER_KEY], (items) => {
           if (api.runtime?.lastError) {
             reject(new Error('Could not load the prefill phrase.'));
             return;
           }
 
           const phrase = items[PREFILL_PHRASE_KEY];
-          resolve(typeof phrase === 'string' ? phrase : '');
+          const placeholder = items[PREFILL_PLACEHOLDER_KEY];
+          resolve({
+            phrase: typeof phrase === 'string' ? phrase : '',
+            placeholder: typeof placeholder === 'string' ? placeholder : '',
+          });
         });
       }),
-    save: (phrase) =>
+    save: (settings) =>
       new Promise<void>((resolve, reject) => {
-        api.storage.local.set({ [PREFILL_PHRASE_KEY]: phrase }, () => {
-          if (api.runtime?.lastError) {
-            reject(new Error('Could not save the prefill phrase.'));
-            return;
-          }
+        api.storage.local.set(
+          {
+            [PREFILL_PHRASE_KEY]: settings.phrase,
+            [PREFILL_PLACEHOLDER_KEY]: settings.placeholder,
+          },
+          () => {
+            if (api.runtime?.lastError) {
+              reject(new Error('Could not save the prefill phrase.'));
+              return;
+            }
 
-          resolve();
-        });
+            resolve();
+          },
+        );
       }),
   };
 }
