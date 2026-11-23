@@ -297,6 +297,29 @@ describe('KORUS new composer contract', () => {
     observer?.disconnect();
   });
 
+  it('observes a delayed body outside the recipient list subtree', async () => {
+    document.body.innerHTML = `
+      <h2 data-marker>메일쓰기</h2>
+      <div data-recipient-parent><select id="selectrcvuser" name="selectrcvuser"></select></div>
+      <div data-editor-parent></div>
+    `;
+    markVisible('[data-marker]');
+    const store = createStore('Delayed sibling phrase');
+    const observer = observeNewComposer(store, document, matchingPage);
+    const body = document.createElement('div');
+    body.className = 'note-editable';
+    body.setAttribute('contenteditable', 'true');
+    body.dataset.body = 'true';
+    document.querySelector('[data-editor-parent]')!.append(body);
+    markVisible('[data-body]');
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(body.textContent).toBe('Delayed sibling phrase');
+    expect(store.load).toHaveBeenCalledTimes(1);
+    observer?.disconnect();
+  });
+
   it('observes a delayed reply body and disconnects after insertion', async () => {
     document.title = '메일쓰기';
     document.body.className = 'memo';

@@ -6,11 +6,9 @@ import {
 import { createPhraseStore, type PhraseStore } from './settings-store';
 
 const EDITABLE_BODY_SELECTOR = 'div.note-editable[contenteditable="true"]';
-const RECIPIENT_LIST_SELECTOR = 'select#selectrcvuser';
 
 function findObservationTarget(pageDocument: Document): Node {
-  const recipientList = pageDocument.querySelector<HTMLElement>(RECIPIENT_LIST_SELECTOR);
-  return recipientList?.parentElement ?? pageDocument.body!;
+  return pageDocument.body!;
 }
 
 export function observeComposer(
