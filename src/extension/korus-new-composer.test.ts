@@ -206,13 +206,27 @@ describe('KORUS new composer contract', () => {
     installFixture();
     const recipientList = document.querySelector<HTMLSelectElement>('#selectrcvuser')!;
     const option = document.createElement('option');
-    option.value = '홍길동 / 정보전산원 / 전산주사 / 미열람';
+    option.value = 'synthetic-id';
     option.setAttribute('userid', 'synthetic-user');
     option.setAttribute('type', '수신');
-    option.textContent = '홍길동 / 정보전산원 / 전산주사 / 미열람 / 수신';
     recipientList.append(option);
 
+    option.textContent = 'Unverified label';
+    expect(findFirstRecipientName(document)).toBeNull();
+
+    option.textContent = '홍길동 / 정보전산원 / 전산주사 / 미열람 / 수신';
     expect(findFirstRecipientName(document)).toBe('홍길동');
+  });
+
+  it('waits for the first recognized recipient while its username is blank', () => {
+    installFixture();
+    const first = addRecipient(' ');
+    addRecipient('Second');
+
+    expect(findFirstRecipientName(document)).toBeNull();
+
+    first.setAttribute('username', ' First ');
+    expect(findFirstRecipientName(document)).toBe('First');
   });
 
   it('waits for the first recipient before inserting a placeholder phrase', async () => {
@@ -297,6 +311,29 @@ describe('KORUS new composer contract', () => {
     observer?.disconnect();
   });
 
+  it('observes a delayed body outside the recipient list subtree', async () => {
+    document.body.innerHTML = `
+      <h2 data-marker>메일쓰기</h2>
+      <div data-recipient-parent><select id="selectrcvuser" name="selectrcvuser"></select></div>
+      <div data-editor-parent></div>
+    `;
+    markVisible('[data-marker]');
+    const store = createStore('Delayed sibling phrase');
+    const observer = observeNewComposer(store, document, matchingPage);
+    const body = document.createElement('div');
+    body.className = 'note-editable';
+    body.setAttribute('contenteditable', 'true');
+    body.dataset.body = 'true';
+    document.querySelector('[data-editor-parent]')!.append(body);
+    markVisible('[data-body]');
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(body.textContent).toBe('Delayed sibling phrase');
+    expect(store.load).toHaveBeenCalledTimes(1);
+    observer?.disconnect();
+  });
+
   it('observes a delayed reply body and disconnects after insertion', async () => {
     document.title = '메일쓰기';
     document.body.className = 'memo';
@@ -357,6 +394,83 @@ describe('KORUS new composer contract', () => {
     }
   });
 
+  it.each(['username', 'userid'])('observes a recipient that gains %s after attachment', async (attribute) => {
+    const body = installReplyFixture('Existing content');
+    const list = document.querySelector<HTMLSelectElement>('#selectrcvuser')!;
+    const option = document.createElement('option');
+    option.text = 'First / Team / Rank / Unread / Recipient';
+    list.append(option);
+    const store = createStore(`Hello ${RECIPIENT_PLACEHOLDER}. `);
+    const observer = observeComposer(store, document, matchingReplyPage);
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const initialContent = body.textContent;
+
+    option.setAttribute(attribute, attribute === 'username' ? 'First' : 'synthetic-id');
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    observer?.disconnect();
+
+    expect(initialContent).toBe('Existing content');
+    expect(body.textContent).toBe('Hello First. Existing content');
+  });
+
+  it.each([
+    ['hidden', ''],
+    ['class', 'loading'],
+    ['contenteditable', 'false'],
+  ])('observes when an attached editor becomes ready through %s', async (attribute, initialValue) => {
+    const body = installReplyFixture('Existing content');
+    const readyValue = body.getAttribute(attribute);
+    body.setAttribute(attribute, initialValue);
+    const store = createStore('Hello. ');
+    const observer = observeComposer(store, document, matchingReplyPage);
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const initialContent = body.textContent;
+
+    if (readyValue === null) {
+      body.removeAttribute(attribute);
+    } else {
+      body.setAttribute(attribute, readyValue);
+    }
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    observer?.disconnect();
+
+    expect(initialContent).toBe('Existing content');
+    expect(body.textContent).toBe('Hello. Existing content');
+  });
+
+  it('keeps typing after the phrase when it arrives at the caret', async () => {
+    const body = installReplyFixture('');
+    const store = createStore(`Hello\n${RECIPIENT_PLACEHOLDER}. `);
+    const observer = observeComposer(store, document, matchingReplyPage);
+    const selection = document.getSelection()!;
+    body.focus();
+    selection.collapse(body, 0);
+
+    addRecipient('First');
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    observer?.disconnect();
+
+    selection.getRangeAt(0).insertNode(document.createTextNode('Typed'));
+    selection.removeAllRanges();
+    expect(body.innerHTML).toBe('Hello<br>First. Typed');
+  });
+
+  it('leaves a selection inside existing content in place', () => {
+    const body = installReplyFixture('Existing content');
+    const text = body.firstChild!;
+    const selection = document.getSelection()!;
+    selection.setBaseAndExtent(text, 2, text, 8);
+
+    expect(insertPhraseOnce(body, 'Hello. ')).toBe(true);
+    expect(selection.anchorNode).toBe(text);
+    expect(selection.anchorOffset).toBe(2);
+    expect(selection.focusNode).toBe(text);
+    expect(selection.focusOffset).toBe(8);
+    selection.removeAllRanges();
+  });
+
   it('prefills a configured rank without changing the placeholder token', async () => {
     const body = installFixture('Existing text');
     const store = createRankStore(`안녕하세요. ${RANK_PLACEHOLDER}`, '연구사님');
@@ -374,7 +488,12 @@ describe('KORUS new composer contract', () => {
   });
 
   it('ignores editor mutations while waiting for the first recipient', async () => {
-    const body = installReplyFixture('Existing content');
+    const body = installReplyFixture('<p>Existing content</p>');
+    const hiddenEditor = document.createElement('div');
+    hiddenEditor.className = 'note-editable';
+    hiddenEditor.setAttribute('contenteditable', 'true');
+    hiddenEditor.hidden = true;
+    body.before(hiddenEditor);
     const store = createStore(`안녕하세요. ${RECIPIENT_PLACEHOLDER}님.`);
     const observer = observeComposer(store, document, matchingReplyPage);
 
@@ -383,14 +502,16 @@ describe('KORUS new composer contract', () => {
     const loadCountBeforeTyping = load.mock.calls.length;
 
     body.append(document.createTextNode('typed content'));
+    body.querySelector('p')!.className = 'typed';
+    document.querySelector('select')!.className = 'unrelated-style';
     await new Promise((resolve) => setTimeout(resolve, 0));
-
-    expect(load).toHaveBeenCalledTimes(loadCountBeforeTyping);
+    const loadCountAfterTyping = load.mock.calls.length;
 
     addRecipient('홍길동');
     await new Promise((resolve) => setTimeout(resolve, 0));
-
-    expect(body.textContent).toBe('안녕하세요. 홍길동님.Existing contenttyped content');
     observer?.disconnect();
+
+    expect(loadCountAfterTyping).toBe(loadCountBeforeTyping);
+    expect(body.textContent).toBe('안녕하세요. 홍길동님.Existing contenttyped content');
   });
 });

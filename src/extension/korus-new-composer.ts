@@ -13,9 +13,37 @@ export interface PageLocation {
 }
 
 const PAGE_MARKER_SELECTOR = 'h1, h2, h3, h4, h5, h6, td.pupup_title';
-const BODY_SELECTOR = 'div.note-editable[contenteditable="true"]';
+const BODY_CONTAINER_SELECTOR = 'div.note-editable';
+const BODY_SELECTOR = `${BODY_CONTAINER_SELECTOR}[contenteditable="true"]`;
 const RECIPIENT_LIST_SELECTOR = 'select#selectrcvuser';
+const RECIPIENT_METADATA_ATTRIBUTES = ['username', 'userid'];
 const insertedBodies = new WeakSet<HTMLDivElement>();
+
+export const composerObservationOptions: MutationObserverInit = {
+  childList: true,
+  subtree: true,
+  attributes: true,
+  attributeFilter: [...RECIPIENT_METADATA_ATTRIBUTES, 'class', 'contenteditable', 'hidden', 'aria-hidden', 'style'],
+};
+
+export function isComposerMutationRelevant({ target, type, attributeName }: MutationRecord): boolean {
+  const element = target.nodeType === target.ELEMENT_NODE ? (target as Element) : target.parentElement;
+  if (type === 'childList') {
+    return !element?.closest(BODY_SELECTOR);
+  }
+
+  if (!element || !attributeName) {
+    return false;
+  }
+
+  if (RECIPIENT_METADATA_ATTRIBUTES.includes(attributeName)) {
+    return element.matches('option') && element.closest(RECIPIENT_LIST_SELECTOR) !== null;
+  }
+
+  return element.matches(BODY_CONTAINER_SELECTOR) ||
+    (attributeName === 'class' && element.matches('div[contenteditable="true"]')) ||
+    (attributeName !== 'contenteditable' && element.querySelector(BODY_SELECTOR) !== null);
+}
 
 export function isNewComposerPage(pageLocation: PageLocation): boolean {
   return pageLocation.origin === KORUS_ORIGIN && pageLocation.pathname === NEW_COMPOSER_PATH;
@@ -98,7 +126,15 @@ export function insertPhraseOnce(body: HTMLDivElement, phrase: string): boolean 
     return false;
   }
 
-  body.insertBefore(appendPhraseNodes(body.ownerDocument, phrase), body.firstChild);
+  const selection = body.ownerDocument.getSelection();
+  const caretAtStart = selection?.isCollapsed && selection.anchorNode === body && selection.anchorOffset === 0;
+  const fragment = appendPhraseNodes(body.ownerDocument, phrase);
+  const insertedNodeCount = fragment.childNodes.length;
+
+  body.insertBefore(fragment, body.firstChild);
+  if (caretAtStart) {
+    selection.collapse(body, insertedNodeCount);
+  }
   body.setAttribute(PREFILLED_ATTRIBUTE, 'true');
   insertedBodies.add(body);
   return true;
@@ -110,22 +146,25 @@ function findFirstRecipient(pageDocument: Document): { name: string; option: HTM
     return null;
   }
 
-  for (const option of recipientLists[0].options) {
-    const username = option.getAttribute('username')?.trim();
-    if (username) {
-      return { name: username, option };
-    }
-
-    if (option.getAttribute('userid')?.trim()) {
-      const displayValue = option.value.trim() || option.textContent?.trim() || '';
-      const name = displayValue.split(/\s*\/\s*/, 1)[0]?.trim();
-      if (name) {
-        return { name, option };
-      }
-    }
+  const option = Array.from(recipientLists[0].options).find((candidate) =>
+    RECIPIENT_METADATA_ATTRIBUTES.some((attribute) => candidate.hasAttribute(attribute)),
+  );
+  if (!option) {
+    return null;
   }
 
-  return null;
+  const username = option.getAttribute('username');
+  if (username !== null) {
+    const name = username.trim();
+    return name ? { name, option } : null;
+  }
+
+  if (!option.getAttribute('userid')?.trim()) {
+    return null;
+  }
+
+  const [name, detail] = option.text.split(/\s+\/\s+/, 2);
+  return name.trim() && detail?.trim() ? { name: name.trim(), option } : null;
 }
 
 export function findFirstRecipientName(pageDocument: Document): string | null {
