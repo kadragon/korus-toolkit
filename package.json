@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "vite build --mode content && vite build --mode settings",
+    "build": "vite build --mode content && vite build --mode settings && vite build --mode training-main && vite build --mode training-attachment",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
@@ -14,5 +14,8 @@
     "typescript": "^7.0.2",
     "vite": "^8.2.1",
     "vitest": "^4.1.10"
+  },
+  "dependencies": {
+    "pdfjs-dist": "6.5.438"
   }
 }

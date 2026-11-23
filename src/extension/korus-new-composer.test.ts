@@ -370,6 +370,34 @@ describe('KORUS new composer contract', () => {
     observer?.disconnect();
   });
 
+  it.each([
+    ['전산주사', '팀장님'],
+    ['주사보', '팀장님'],
+    ['전산서기', '선생님'],
+    ['', '선생님'],
+  ])('fills the honorific for position %s after recipient metadata arrives', async (position, honorific) => {
+    const body = installFixture('Existing text');
+    const store = createRankStore(`안녕하세요. ${RANK_PLACEHOLDER}.`, '선생님');
+    const observer = observeNewComposer(store, document, matchingPage);
+
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      const textBeforeAddingRecipient = body.textContent;
+
+      const option = addRecipient('홍길동');
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(body.textContent).toBe('Existing text');
+
+      option.value = `홍길동 / Sample department / ${position} / 미열람`;
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      expect(body.textContent).toBe(`안녕하세요. ${honorific}.Existing text`);
+      expect(textBeforeAddingRecipient).toBe('Existing text');
+    } finally {
+      observer?.disconnect();
+    }
+  });
+
   it.each(['username', 'userid'])('observes a recipient that gains %s after attachment', async (attribute) => {
     const body = installReplyFixture('Existing content');
     const list = document.querySelector<HTMLSelectElement>('#selectrcvuser')!;

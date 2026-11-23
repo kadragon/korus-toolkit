@@ -23,7 +23,7 @@ export const composerObservationOptions: MutationObserverInit = {
   childList: true,
   subtree: true,
   attributes: true,
-  attributeFilter: [...RECIPIENT_METADATA_ATTRIBUTES, 'class', 'contenteditable', 'hidden', 'aria-hidden', 'style'],
+  attributeFilter: [...RECIPIENT_METADATA_ATTRIBUTES, 'value', 'class', 'contenteditable', 'hidden', 'aria-hidden', 'style'],
 };
 
 export function isComposerMutationRelevant({ target, type, attributeName }: MutationRecord): boolean {
@@ -36,7 +36,7 @@ export function isComposerMutationRelevant({ target, type, attributeName }: Muta
     return false;
   }
 
-  if (RECIPIENT_METADATA_ATTRIBUTES.includes(attributeName)) {
+  if (attributeName === 'value' || RECIPIENT_METADATA_ATTRIBUTES.includes(attributeName)) {
     return element.matches('option') && element.closest(RECIPIENT_LIST_SELECTOR) !== null;
   }
 
@@ -140,30 +140,35 @@ export function insertPhraseOnce(body: HTMLDivElement, phrase: string): boolean 
   return true;
 }
 
-export function findFirstRecipientName(pageDocument: Document): string | null {
+function findFirstRecipient(pageDocument: Document): { name: string; option: HTMLOptionElement } | null {
   const recipientLists = pageDocument.querySelectorAll<HTMLSelectElement>(RECIPIENT_LIST_SELECTOR);
   if (recipientLists.length !== 1) {
     return null;
   }
 
-  const recipient = Array.from(recipientLists[0].options).find((option) =>
-    RECIPIENT_METADATA_ATTRIBUTES.some((attribute) => option.hasAttribute(attribute)),
+  const option = Array.from(recipientLists[0].options).find((candidate) =>
+    RECIPIENT_METADATA_ATTRIBUTES.some((attribute) => candidate.hasAttribute(attribute)),
   );
-  if (!recipient) {
+  if (!option) {
     return null;
   }
 
-  const username = recipient.getAttribute('username');
+  const username = option.getAttribute('username');
   if (username !== null) {
-    return username.trim() || null;
+    const name = username.trim();
+    return name ? { name, option } : null;
   }
 
-  if (!recipient.getAttribute('userid')?.trim()) {
+  if (!option.getAttribute('userid')?.trim()) {
     return null;
   }
 
-  const [name, detail] = recipient.text.split(/\s+\/\s+/, 2);
-  return detail?.trim() ? name.trim() || null : null;
+  const [name, detail] = option.text.split(/\s+\/\s+/, 2);
+  return name.trim() && detail?.trim() ? { name: name.trim(), option } : null;
+}
+
+export function findFirstRecipientName(pageDocument: Document): string | null {
+  return findFirstRecipient(pageDocument)?.name ?? null;
 }
 
 export function resolvePhrase(
@@ -174,9 +179,26 @@ export function resolvePhrase(
   let resolvedPhrase = phrase;
 
   if (resolvedPhrase.includes(RANK_PLACEHOLDER)) {
-    const rank = placeholder.trim();
+    let rank = placeholder.trim();
     if (!rank) {
       return null;
+    }
+
+    if (rank === '선생님') {
+      const recipient = findFirstRecipient(pageDocument);
+      if (!recipient) {
+        return null;
+      }
+
+      const { option } = recipient;
+      const valuePosition = option.value.split('/')[2]?.trim();
+      const textPosition = option.text.split('/')[2]?.trim();
+      if (valuePosition === undefined && textPosition === undefined) {
+        return null;
+      }
+      if ((valuePosition || textPosition)?.includes('주사')) {
+        rank = '팀장님';
+      }
     }
 
     resolvedPhrase = resolvedPhrase.replaceAll(RANK_PLACEHOLDER, () => rank);

@@ -15,6 +15,7 @@ Browser-extension repository targeting `https://knue.korus.ac.kr/`. Stack is dec
 | `docs/design/chrome-extension-stack.md` | Before scaffolding the extension or changing stack, browser targets, or test tooling |
 | `docs/design/chrome-extension-release.md` | Before packaging or distributing a Chrome/Edge release |
 | `docs/design/korus-mail-prefill.md` | Before changing the KORUS mail workflow contract or prefill behavior |
+| `docs/design/korus-training-certificate.md` | Before changing training certificate parsing, lookup, or the MAIN world binding |
 
 ## Golden Principles
 
