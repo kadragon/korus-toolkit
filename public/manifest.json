@@ -17,6 +17,21 @@
       "js": ["content-script.js"],
       "all_frames": true,
       "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://knue.korus.ac.kr/*"],
+      "include_globs": ["https://knue.korus.ac.kr/cm/NUSS_UI/indexForSTD.html*"],
+      "js": ["training-main.js"],
+      "all_frames": true,
+      "run_at": "document_idle",
+      "world": "MAIN"
+    },
+    {
+      "matches": ["https://knue.korus.ac.kr/*"],
+      "include_globs": ["https://knue.korus.ac.kr/cm/NUSS_UI/indexForSTD.html*"],
+      "js": ["training-attachment.js"],
+      "all_frames": true,
+      "run_at": "document_idle"
     }
   ]
 }
