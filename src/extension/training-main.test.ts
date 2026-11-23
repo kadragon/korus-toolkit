@@ -57,7 +57,14 @@ function activeFrame() {
     location: new URL('https://knue.korus.ac.kr/cm/NUSS_UI/indexForSTD.html'),
     top: { location: new URL('https://knue.korus.ac.kr/poc/mi/IndxCtr/indx.do#cmd=menu&mId=HRPFA1500101') },
   } as unknown as Window;
-  return { window, doc, root, frame };
+  function bind(parent: HTMLElement, suffix: string, control: object) {
+    const wrapper = Object.assign(doc.createElement('div'), {
+      id: `${parent.id}_div_url_${suffix}`, _linked_element: { linkedcontrol: control },
+    });
+    parent.append(wrapper);
+    return wrapper;
+  }
+  return { window, doc, root, frame, bind };
 }
 
 const distinct = { actualHours: 3, actualMinutes: 10, recognizedHours: 2, recognizedMinutes: 45 };
@@ -219,18 +226,70 @@ describe('Nexacro training binding', () => {
     expect(report).toHaveBeenCalledTimes(1);
   });
 
+  it.each(['fresh', 'stale', 'ambiguous'] as const)('selects only a unique fresh institution row (%s)', async outcome => {
+    vi.useFakeTimers();
+    const { window, doc, root, frame, bind } = activeFrame();
+    try {
+      const popup = Object.assign(doc.createElement('div'), {
+        id: 'synthetic_NHRPFA007_01_form', getClientRects: root.getClientRects,
+      });
+      const name = 'Sample Institute';
+      const code = 'fixture-new';
+      let saved = '';
+      let query = '';
+      const rows = [{ edcInsttNm: name, edcInsttCode: code }];
+      if (outcome === 'ambiguous') rows.push({ edcInsttNm: name, edcInsttCode: 'fixture-other' });
+      let notifyLoad: (source: unknown, event: { reason: number; errorcode: number }) => void;
+      const dataset = {
+        addEventHandler(_event: string, handler: typeof notifyLoad) { notifyLoad = handler; },
+        removeEventHandler() {},
+        getRowCount: () => rows.length,
+        getColumn: (row: number, column: keyof typeof rows[number]) => rows[row][column],
+      };
+      bind(root, 'edt_edcInsttNm', { get_value: () => saved });
+      bind(root, 'btn_edcInsttNm', { click: () => doc.body.append(popup) });
+      bind(popup, 'edt_edcInsttNm', { get_value: () => query, set_value: (value: string) => { query = value; } });
+      bind(popup, 'grd_list', { getBindDataset: () => dataset });
+      bind(popup, 'View_VM00023948_btn_0', { click: () => notifyLoad(dataset, { reason: 0, errorcode: 0 }) });
+      function cell(row: number, column: number, value: string) {
+        const element = Object.assign(doc.createElement('div'), {
+          id: `${popup.id}_div_url_grd_list_body_gridrow_${row}_cell_${row}_${column}GridCellTextContainerElement`,
+          textContent: value,
+          getClientRects: root.getClientRects,
+          getBoundingClientRect: () => new window.DOMRect(0, 0, 100, 20),
+        });
+        popup.append(element);
+        return element;
+      }
+      const renderedCode = cell(0, 1, outcome === 'ambiguous' ? code : 'fixture-old');
+      const renderedName = cell(0, 2, name);
+      if (outcome === 'ambiguous') {
+        cell(1, 1, 'fixture-other');
+        cell(1, 2, 'Earlier result');
+      }
+      const select = vi.fn(() => { saved = name; popup.remove(); });
+      renderedName.addEventListener('dblclick', select);
+
+      const result = applyTrainingLookup(frame, root, 'institution', name, new AbortController());
+      await vi.advanceTimersByTimeAsync(200);
+      expect(select).not.toHaveBeenCalled();
+      if (outcome === 'fresh') renderedCode.textContent = code;
+      await vi.advanceTimersByTimeAsync(3000);
+
+      expect(await result).toBe(outcome === 'fresh');
+      expect(select).toHaveBeenCalledTimes(outcome === 'fresh' ? 1 : 0);
+      expect(popup.isConnected).toBe(outcome !== 'fresh');
+    } finally {
+      window.close();
+      vi.useRealTimers();
+    }
+  });
+
   it.each([true, false])('enters a course directly without search (generic row preselected: %s)', async preselected => {
-    const { window, doc, root, frame } = activeFrame();
+    const { window, doc, root, frame, bind } = activeFrame();
     const popup = Object.assign(doc.createElement('div'), {
       id: 'synthetic_NHRHFA005_01_form', getClientRects: root.getClientRects,
     });
-    function bind(parent: HTMLElement, suffix: string, control: object) {
-      const wrapper = Object.assign(doc.createElement('div'), {
-        id: `${parent.id}_div_url_${suffix}`, _linked_element: { linkedcontrol: control },
-      });
-      parent.append(wrapper);
-      return wrapper;
-    }
     let saved = '';
     bind(root, 'edt_crsecNm', { get_value: () => saved });
     bind(root, 'btn_crsecNm', { click: () => doc.body.append(popup) });

@@ -9,6 +9,7 @@ interface LookupDataset {
   addEventHandler(event: 'onload', handler: LoadHandler, scope: LinkedControl): void;
   removeEventHandler(event: 'onload', handler: LoadHandler, scope: LinkedControl): void;
   getRowCount?(): number;
+  getColumn?(row: number, column: string): unknown;
 }
 type LoadHandler = (source: unknown, event: { reason?: number; errorcode?: number }) => void;
 
@@ -145,9 +146,10 @@ export function applyTrainingValues(
 
 const lookups = {
   course: { field: 'edt_crsecNm', button: 'btn_crsecNm', col: 1 },
-  institution: { field: 'edt_edcInsttNm', button: 'btn_edcInsttNm', search: 'View_VM00023948_btn_0', col: 2 },
+  institution: { field: 'edt_edcInsttNm', button: 'btn_edcInsttNm', search: 'View_VM00023948_btn_0', col: 2, codeCol: 1 },
 } as const;
 const otherCourse = '기타교육과정';
+const gridRowSuffix = '_div_url_grd_list_body_gridrow_';
 
 function visibleLookup(document: Document, suffix: string): HTMLElement | undefined {
   const roots = [...document.querySelectorAll<HTMLElement>(`[id$="${suffix}"]`)].filter(isVisible);
@@ -211,9 +213,47 @@ async function search(
 const normalizeName = (value: string) => value.normalize('NFC').trim().replace(/\s+/gu, ' ');
 
 function resultCells(popup: HTMLElement, field: LookupField): HTMLElement[] {
-  const prefix = popup.id + '_div_url_grd_list_body_gridrow_';
+  const prefix = popup.id + gridRowSuffix;
   const suffix = `_${lookups[field].col}GridCellTextContainerElement`;
   return [...popup.querySelectorAll<HTMLElement>(`[id^="${prefix}"][id$="${suffix}"]`)].filter(isVisible);
+}
+
+interface InstitutionRow {
+  count: number;
+  index: number;
+  code: string;
+}
+
+function findInstitutionRow(dataset: LookupDataset, name: string): InstitutionRow | undefined {
+  if (typeof dataset.getRowCount !== 'function' || typeof dataset.getColumn !== 'function') return undefined;
+  const count = dataset.getRowCount();
+  if (!Number.isSafeInteger(count) || count < 1) return undefined;
+  let index = -1;
+  for (let row = 0; row < count; row++) {
+    const value = dataset.getColumn(row, 'edcInsttNm');
+    if (typeof value !== 'string' || normalizeName(value) !== name) continue;
+    if (index !== -1) return undefined;
+    index = row;
+  }
+  if (index === -1) return undefined;
+  const value = dataset.getColumn(index, 'edcInsttCode');
+  const code = typeof value === 'string' || (typeof value === 'number' && Number.isSafeInteger(value))
+    ? String(value).trim() : '';
+  return code ? { count, index, code } : undefined;
+}
+
+function institutionResultCell(
+  popup: HTMLElement, name: string, { count, index, code }: InstitutionRow,
+): HTMLElement | undefined {
+  const cells = resultCells(popup, 'institution');
+  if (cells.length !== count) return undefined;
+  const matches = cells.filter(cell => normalizeName(cell.textContent ?? '') === name);
+  const rowId = `${popup.id}${gridRowSuffix}${index}_cell_${index}`;
+  const { col, codeCol } = lookups.institution;
+  if (matches.length !== 1 || matches[0].id !== `${rowId}_${col}GridCellTextContainerElement`) return undefined;
+  const codeCells = popup.querySelectorAll<HTMLElement>(`[id="${rowId}_${codeCol}GridCellTextContainerElement"]`);
+  if (codeCells.length !== 1 || !isVisible(codeCells[0]) || codeCells[0].textContent?.trim() !== code) return undefined;
+  return matches[0];
 }
 
 function readyInstitutionLookup(popup: HTMLElement): boolean {
@@ -307,14 +347,23 @@ export async function applyTrainingLookup(
       if (!await waitFor(() => readyInstitutionLookup(institutionPopup) ? true : undefined, popupActive, 6000)) return false;
       const dataset = await search(institutionPopup, value, controller.signal);
       if (!dataset || !popupActive()) return false;
-      // Nexacro paints the grid after notifying the bound dataset's onload listeners.
-      await pause(120);
-      const query = linkedControl(formControl(institutionPopup, config.field));
-      if (!popupActive() || !query || modelValue(query) !== value) return false;
-      const cells = resultCells(institutionPopup, field);
-      const matches = cells.filter(cell => normalizeName(cell.textContent ?? '') === normalizeName(value));
-      if (matches.length !== 1 || dataset.getRowCount?.() !== cells.length) return false;
-      selectRow(matches[0], true);
+      const name = normalizeName(value);
+      const expected = findInstitutionRow(dataset, name);
+      if (!expected) return false;
+      const resultActive = () => {
+        if (!popupActive()) return false;
+        const query = linkedControl(formControl(institutionPopup, config.field));
+        const grid = linkedControl(formControl(institutionPopup, 'grd_list'));
+        return !!query && modelValue(query) === value && grid?.getBindDataset?.() === dataset;
+      };
+      // The bound dataset loads before Nexacro paints its result cells.
+      const readCell = () => institutionResultCell(institutionPopup, name, expected);
+      const cell = await waitFor(readCell, resultActive);
+      if (!cell || !resultActive()) return false;
+      const current = findInstitutionRow(dataset, name);
+      if (current?.index !== expected.index || current.count !== expected.count || current.code !== expected.code ||
+        readCell() !== cell) return false;
+      selectRow(cell, true);
     }
     return (await waitFor(() => {
       const current = modelValue(parent!);
