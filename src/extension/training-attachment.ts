@@ -58,7 +58,13 @@ export function observeTrainingAttachment(
   if (!isTrainingFrame(frame)) return;
   const doc = frame.document;
   if (!doc.body) return;
-  let armed: { root: HTMLElement; dialog?: HTMLElement; deadline: number; files: Map<string, File> } | undefined;
+  let armed: {
+    root: HTMLElement;
+    dialog?: HTMLElement;
+    deadline: number;
+    files: Map<string, File>;
+    completed: Set<string>;
+  } | undefined;
   let draft: HTMLElement | undefined;
   let parsing: AbortController | undefined;
   let panel: HTMLElement | undefined;
@@ -142,8 +148,15 @@ export function observeTrainingAttachment(
     }
     if (armed || draft) {
       const popup = attachmentDialog(doc);
-      if (armed && (root !== armed.root || (armed.dialog ? popup?.dialog !== armed.dialog : Date.now() > armed.deadline))) {
+      if (armed && (root !== armed.root || (!armed.dialog && Date.now() > armed.deadline))) {
         armed = undefined;
+      } else if (armed?.dialog && popup?.dialog !== armed.dialog) {
+        const finished = armed;
+        armed = undefined;
+        if (!popup) {
+          const files = [...finished.completed].flatMap(key => finished.files.get(key) ?? []);
+          if (files.length) void analyzeFiles(finished.root, files);
+        }
       } else if (armed && !armed.dialog && popup) {
         armed.dialog = popup.dialog;
       }
@@ -358,7 +371,7 @@ export function observeTrainingAttachment(
     if (armed?.root === root && !armed.dialog && Date.now() < armed.deadline) return;
     parsing?.abort();
     if (lookup) send(root, { kind: 'cancel' });
-    armed = { root, deadline: Date.now() + 8000, files: new Map() };
+    armed = { root, deadline: Date.now() + 8000, files: new Map(), completed: new Set() };
     watch();
   };
   for (const event of ['pointerdown', 'keydown', 'click']) doc.addEventListener(event, arm, true);
@@ -372,7 +385,7 @@ export function observeTrainingAttachment(
     for (const file of popup.input.files ?? []) armed.files.set(uploadFileKey(file), file);
   }, true);
 
-  doc.addEventListener(uploadCompleteEvent, async event => {
+  doc.addEventListener(uploadCompleteEvent, event => {
     if (!armed || event.target !== armed.root || getTrainingRoot(frame) !== armed.root) return;
     const detail = (event as CustomEvent<unknown>).detail;
     if (typeof detail !== 'string' || detail.length > 32768) return;
@@ -383,10 +396,12 @@ export function observeTrainingAttachment(
       return;
     }
     if (!Array.isArray(keys) || !keys.every(key => typeof key === 'string')) return;
-    const files = [...new Set(keys)].flatMap(key => armed!.files.get(key) ?? []);
-    if (!files.length) return;
-    const root = armed.root;
-    armed = undefined;
+    for (const key of keys) {
+      if (armed.files.has(key)) armed.completed.add(key);
+    }
+  }, true);
+
+  async function analyzeFiles(root: HTMLElement, files: File[]) {
     clearPanel();
     const pdfs = files.filter(file => /\.pdf$/iu.test(file.name) || file.type === 'application/pdf');
     openPanel(root);
@@ -410,7 +425,7 @@ export function observeTrainingAttachment(
     } finally {
       if (parsing === controller) parsing = undefined;
     }
-  }, true);
+  }
 }
 
 if (typeof window !== 'undefined') observeTrainingAttachment(window);

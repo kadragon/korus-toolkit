@@ -1,8 +1,9 @@
 # KORUS training certificate autofill
 
 The training dialog title explains that uploaded PDFs are analyzed automatically.
-The extension waits for a successful upload before reading the selected PDF locally.
-The result panel appears after the file dialog is dismissed. It fills empty dates, durations, and explicitly
+The extension collects successful upload confirmations while the file dialog is open.
+After the dialog closes, it reads the single confirmed PDF locally and shows the result panel.
+It fills empty dates, durations, and explicitly
 labeled training content. One explicit duration defaults both time fields, while distinct
 actual and recognized durations are kept separate. It shows the extracted
 course and institution alongside copy buttons, direct course entry, and institution lookup.
@@ -14,8 +15,8 @@ The user still controls attachment upload, dialog dismissal, and saving the appl
 
 The isolated script accepts selections only after the attachment magnifier on the active
 training form opens its file dialog. PDF.js and its parser are packaged in the extension.
-The extension uses embedded text, does not render pages or use OCR, and never sends the
-PDF or its raw text to a service. The institution lookup sends its search term through
+The extension uses embedded text and does not package external CMaps or use OCR.
+It never sends the PDF or its raw text to a service. The institution lookup sends its search term through
 KORUS only when the user starts it. The extension stores no document
 data beyond the current draft and requests no new browser permissions.
 

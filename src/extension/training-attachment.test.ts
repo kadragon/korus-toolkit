@@ -5,7 +5,11 @@ import {
   attachmentButtonId, decodeCommand, requestEvent, responseEvent, trainingRootId, uploadCompleteEvent, uploadFileKey,
 } from './training-form';
 
-it.each([true, false])('keeps explicit panel choices available after PDF parsing (success: %s)', async parsed => {
+it.each([
+  { parsed: true, multiple: false },
+  { parsed: false, multiple: false },
+  { parsed: true, multiple: true },
+])('handles confirmed files before keeping panel choices available (parse: $parsed, multiple: $multiple)', async ({ parsed, multiple }) => {
   const { window } = new JSDOM(`<main id="${trainingRootId}"><button id="${attachmentButtonId}"></button></main>`);
   const doc = window.document;
   const root = doc.querySelector('main')!;
@@ -53,23 +57,30 @@ it.each([true, false])('keeps explicit panel choices available after PDF parsing
   dialog.innerHTML = '<span class="ui-dialog-title">파일관리</span><input id="files" type="file" name="files[]" multiple>';
   const input = dialog.querySelector('input')!;
   const file = new window.File(['fixture'], 'fixture.pdf');
-  Object.defineProperty(input, 'files', { value: [file] });
+  const other = new window.File(['notes'], multiple ? 'second.pdf' : 'notes.txt');
+  Object.defineProperty(input, 'files', { value: [other, file] });
   doc.body.append(dialog);
   trusted(doc, 'change', input);
   const completed = (keys: string[]) => root.dispatchEvent(new window.CustomEvent(uploadCompleteEvent, {
     detail: JSON.stringify(keys),
   }));
   completed([uploadFileKey({ name: 'different.pdf', size: file.size })]);
+  completed([uploadFileKey(other)]);
+  completed([uploadFileKey(file)]);
+  completed([uploadFileKey(file)]);
   expect(read).not.toHaveBeenCalled();
-  expect(doc.querySelector('section')).toBeNull();
-  completed([uploadFileKey(file)]);
-  completed([uploadFileKey(file)]);
-  await Promise.resolve();
-  expect(read).toHaveBeenCalledTimes(1);
-  expect(read.mock.calls[0][0]).toBe(file);
-
+  expect(!!doc.querySelector('section')).toBe(false);
+  dialog.remove();
+  await new Promise((resolve) => setTimeout(resolve, 0));
   const panel = doc.querySelector('section')!;
-  expect(panel.hidden).toBe(true);
+  expect(panel.hidden).toBe(false);
+  if (multiple) {
+    expect(read).not.toHaveBeenCalled();
+    expect(panel.textContent).toContain('자동 입력할 PDF를 하나만 선택하세요.');
+  } else {
+    expect(read).toHaveBeenCalledTimes(1);
+    expect(read.mock.calls[0][0]).toBe(file);
+  }
   const groups = [...panel.querySelectorAll('[role="group"]')];
   expect(groups.map(group => group.getAttribute('aria-label'))).toEqual([
     '학습방법', '학습종류', '교육기관구분', '업무시간구분', '국내외구분', '교내외구분', '직무관계여부',
@@ -80,7 +91,7 @@ it.each([true, false])('keeps explicit panel choices available after PDF parsing
     ['국내', '국외'], ['교내', '교외'], ['Y', 'N'],
   ]);
   const panelButtons = [...panel.querySelectorAll('button')];
-  if (parsed) {
+  if (parsed && !multiple) {
     expect(panelButtons.map(button => button.textContent).slice(1, 5)).toEqual([
       '자동입력하기', '복사', '교육기관 조회 및 입력', '복사',
     ]);
@@ -88,12 +99,6 @@ it.each([true, false])('keeps explicit panel choices available after PDF parsing
   const [first, second, failing] = groups[0].querySelectorAll('button');
   expect(panel.querySelector('[aria-pressed="true"]')).toBeNull();
   send.mockClear();
-  expect(first.disabled).toBe(true);
-  trusted(first, 'click');
-  expect(send).not.toHaveBeenCalled();
-  dialog.remove();
-  await Promise.resolve();
-  expect(panel.hidden).toBe(false);
   expect(first.disabled).toBe(false);
   first.click();
   expect(send).not.toHaveBeenCalled();
@@ -118,7 +123,7 @@ it.each([true, false])('keeps explicit panel choices available after PDF parsing
     }
   }
 
-  if (parsed) {
+  if (parsed && !multiple) {
     trusted(panelButtons[1], 'click');
     expect(first.disabled).toBe(true);
     root.dispatchEvent(new window.CustomEvent(responseEvent, {
