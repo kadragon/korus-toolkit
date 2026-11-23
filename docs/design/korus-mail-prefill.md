@@ -25,6 +25,7 @@ Add a Chromium extension feature that lets the operator save one prefill phrase 
 - Run the content script in all matching frames because the observed reply composer is loaded in the KORUS body frame; page-path validation still keeps unsupported frames inert.
 - Insert with text-safe DOM operations. A new composer and a reply composer each receive at most one insertion for their own lifetime; repeated DOM observations must not duplicate the phrase. Reply insertion targets the editable response area before quoted content.
 - When the phrase contains the exact `{{placeholder}}` token, require a non-empty configured placeholder value and replace every token with that value once. A blank value leaves the composer untouched rather than inserting a literal token.
+- When the configured honorific is `선생님`, wait for the first recognized recipient before resolving `{{placeholder}}`. Use `팀장님` if the position field (the third slash-separated field in that option's metadata) contains `주사`. Otherwise use the configured honorific.
 - When the phrase contains the exact `{{받는 사람}}` token, wait for the first `option[username]` in the unique `select#selectrcvuser` recipient list, replace every token with that option's username once, and then insert the resolved phrase. Later recipient changes do not rewrite the inserted text.
 - Treat an empty phrase as disabled. If the expected page state, editable target, or required placeholder value is absent or ambiguous, do nothing and surface an actionable non-sensitive diagnostic where appropriate.
 

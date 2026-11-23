@@ -104,29 +104,32 @@ export function insertPhraseOnce(body: HTMLDivElement, phrase: string): boolean 
   return true;
 }
 
-export function findFirstRecipientName(pageDocument: Document): string | null {
+function findFirstRecipient(pageDocument: Document): { name: string; option: HTMLOptionElement } | null {
   const recipientLists = pageDocument.querySelectorAll<HTMLSelectElement>(RECIPIENT_LIST_SELECTOR);
   if (recipientLists.length !== 1) {
     return null;
   }
 
-  const recipientName = Array.from(recipientLists[0].options)
-    .map((option) => {
-      const username = option.getAttribute('username')?.trim();
-      if (username) {
-        return username;
-      }
+  for (const option of recipientLists[0].options) {
+    const username = option.getAttribute('username')?.trim();
+    if (username) {
+      return { name: username, option };
+    }
 
-      if (!option.getAttribute('userid')?.trim()) {
-        return null;
-      }
-
+    if (option.getAttribute('userid')?.trim()) {
       const displayValue = option.value.trim() || option.textContent?.trim() || '';
-      return displayValue.split(/\s*\/\s*/, 1)[0]?.trim() || null;
-    })
-    .find((name): name is string => Boolean(name));
+      const name = displayValue.split(/\s*\/\s*/, 1)[0]?.trim();
+      if (name) {
+        return { name, option };
+      }
+    }
+  }
 
-  return recipientName ?? null;
+  return null;
+}
+
+export function findFirstRecipientName(pageDocument: Document): string | null {
+  return findFirstRecipient(pageDocument)?.name ?? null;
 }
 
 export function resolvePhrase(
@@ -137,9 +140,22 @@ export function resolvePhrase(
   let resolvedPhrase = phrase;
 
   if (resolvedPhrase.includes(RANK_PLACEHOLDER)) {
-    const rank = placeholder.trim();
+    let rank = placeholder.trim();
     if (!rank) {
       return null;
+    }
+
+    if (rank === '선생님') {
+      const recipient = findFirstRecipient(pageDocument);
+      if (!recipient) {
+        return null;
+      }
+
+      const { option } = recipient;
+      const position = option.value.split('/')[2]?.trim() || option.textContent?.split('/')[2]?.trim();
+      if (position?.includes('주사')) {
+        rank = '팀장님';
+      }
     }
 
     resolvedPhrase = resolvedPhrase.replaceAll(RANK_PLACEHOLDER, () => rank);
