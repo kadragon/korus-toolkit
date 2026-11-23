@@ -39,8 +39,8 @@ extension entry points -> KORUS integration adapters -> feature logic
 - KORUS page content is untrusted input; validate shape before use.
 - Credentials, session identifiers, cookies, employee/student data, and document content are sensitive.
 - Prefer in-memory processing. Persistence requires a named purpose, minimal fields, retention rule, and deletion path.
-- The settings page persists only the operator's one prefill phrase through extension-local storage; an empty phrase disables later insertion, and KORUS page content is not stored.
-- The composer adapter reads only the configured phrase and mutates only the validated visible editor on the exact observed pages; unsupported page states fail closed.
+- The settings page persists only the operator's one prefill phrase and one operator-supplied placeholder value through extension-local storage; an empty phrase or unresolved placeholder disables later insertion, and KORUS page content is not stored.
+- The composer adapter reads only the configured phrase and placeholder value and mutates only the validated visible editor on the exact observed pages; unsupported page states fail closed.
 - Browser permissions and host permissions are security boundaries, not convenience flags.
 
 ## Architecture Decision Rule

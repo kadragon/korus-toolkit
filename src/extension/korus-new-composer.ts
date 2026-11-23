@@ -3,6 +3,7 @@ import { isPhraseEnabled, type PhraseStore } from './settings-store';
 export const KORUS_ORIGIN = 'https://knue.korus.ac.kr';
 export const NEW_COMPOSER_PATH = '/bms/wcm/bizAddView.do';
 export const REPLY_COMPOSER_PATH = '/bms/wcm/bizAnswerView.do';
+export const RANK_PLACEHOLDER = '{{placeholder}}';
 export const RECIPIENT_PLACEHOLDER = '{{받는 사람}}';
 const PREFILLED_ATTRIBUTE = 'data-korus-toolkit-prefilled';
 
@@ -12,9 +13,37 @@ export interface PageLocation {
 }
 
 const PAGE_MARKER_SELECTOR = 'h1, h2, h3, h4, h5, h6, td.pupup_title';
-const BODY_SELECTOR = 'div.note-editable[contenteditable="true"]';
+const BODY_CONTAINER_SELECTOR = 'div.note-editable';
+const BODY_SELECTOR = `${BODY_CONTAINER_SELECTOR}[contenteditable="true"]`;
 const RECIPIENT_LIST_SELECTOR = 'select#selectrcvuser';
+const RECIPIENT_METADATA_ATTRIBUTES = ['username', 'userid'];
 const insertedBodies = new WeakSet<HTMLDivElement>();
+
+export const composerObservationOptions: MutationObserverInit = {
+  childList: true,
+  subtree: true,
+  attributes: true,
+  attributeFilter: [...RECIPIENT_METADATA_ATTRIBUTES, 'class', 'contenteditable', 'hidden', 'aria-hidden', 'style'],
+};
+
+export function isComposerMutationRelevant({ target, type, attributeName }: MutationRecord): boolean {
+  const element = target.nodeType === target.ELEMENT_NODE ? (target as Element) : target.parentElement;
+  if (type === 'childList') {
+    return !element?.closest(BODY_SELECTOR);
+  }
+
+  if (!element || !attributeName) {
+    return false;
+  }
+
+  if (RECIPIENT_METADATA_ATTRIBUTES.includes(attributeName)) {
+    return element.matches('option') && element.closest(RECIPIENT_LIST_SELECTOR) !== null;
+  }
+
+  return element.matches(BODY_CONTAINER_SELECTOR) ||
+    (attributeName === 'class' && element.matches('div[contenteditable="true"]')) ||
+    (attributeName !== 'contenteditable' && element.querySelector(BODY_SELECTOR) !== null);
+}
 
 export function isNewComposerPage(pageLocation: PageLocation): boolean {
   return pageLocation.origin === KORUS_ORIGIN && pageLocation.pathname === NEW_COMPOSER_PATH;
@@ -97,7 +126,15 @@ export function insertPhraseOnce(body: HTMLDivElement, phrase: string): boolean 
     return false;
   }
 
-  body.insertBefore(appendPhraseNodes(body.ownerDocument, phrase), body.firstChild);
+  const selection = body.ownerDocument.getSelection();
+  const caretAtStart = selection?.isCollapsed && selection.anchorNode === body && selection.anchorOffset === 0;
+  const fragment = appendPhraseNodes(body.ownerDocument, phrase);
+  const insertedNodeCount = fragment.childNodes.length;
+
+  body.insertBefore(fragment, body.firstChild);
+  if (caretAtStart) {
+    selection.collapse(body, insertedNodeCount);
+  }
   body.setAttribute(PREFILLED_ATTRIBUTE, 'true');
   insertedBodies.add(body);
   return true;
@@ -109,18 +146,52 @@ export function findFirstRecipientName(pageDocument: Document): string | null {
     return null;
   }
 
-  const firstRecipient = recipientLists[0].querySelector<HTMLOptionElement>('option[username]');
-  const recipientName = firstRecipient?.getAttribute('username')?.trim();
-  return recipientName || null;
-}
-
-export function resolvePhrase(pageDocument: Document, phrase: string): string | null {
-  if (!phrase.includes(RECIPIENT_PLACEHOLDER)) {
-    return phrase;
+  const recipient = Array.from(recipientLists[0].options).find((option) =>
+    RECIPIENT_METADATA_ATTRIBUTES.some((attribute) => option.hasAttribute(attribute)),
+  );
+  if (!recipient) {
+    return null;
   }
 
-  const recipientName = findFirstRecipientName(pageDocument);
-  return recipientName ? phrase.replaceAll(RECIPIENT_PLACEHOLDER, recipientName) : null;
+  const username = recipient.getAttribute('username');
+  if (username !== null) {
+    return username.trim() || null;
+  }
+
+  if (!recipient.getAttribute('userid')?.trim()) {
+    return null;
+  }
+
+  const [name, detail] = recipient.text.split(/\s+\/\s+/, 2);
+  return detail?.trim() ? name.trim() || null : null;
+}
+
+export function resolvePhrase(
+  pageDocument: Document,
+  phrase: string,
+  placeholder = '',
+): string | null {
+  let resolvedPhrase = phrase;
+
+  if (resolvedPhrase.includes(RANK_PLACEHOLDER)) {
+    const rank = placeholder.trim();
+    if (!rank) {
+      return null;
+    }
+
+    resolvedPhrase = resolvedPhrase.replaceAll(RANK_PLACEHOLDER, () => rank);
+  }
+
+  if (resolvedPhrase.includes(RECIPIENT_PLACEHOLDER)) {
+    const recipientName = findFirstRecipientName(pageDocument);
+    if (!recipientName) {
+      return null;
+    }
+
+    resolvedPhrase = resolvedPhrase.replaceAll(RECIPIENT_PLACEHOLDER, () => recipientName);
+  }
+
+  return resolvedPhrase;
 }
 
 export async function prefillComposer(
@@ -133,14 +204,14 @@ export async function prefillComposer(
     return false;
   }
 
-  let phrase: string;
+  let settings;
   try {
-    phrase = await store.load();
+    settings = await store.load();
   } catch {
     return false;
   }
 
-  const resolvedPhrase = resolvePhrase(pageDocument, phrase);
+  const resolvedPhrase = resolvePhrase(pageDocument, settings.phrase, settings.placeholder);
   if (resolvedPhrase === null) {
     return false;
   }

@@ -6,73 +6,493 @@
     <title>KORUS Toolkit 설정</title>
     <style>
       :root {
-        color-scheme: light;
-        font-family: system-ui, sans-serif;
+        color-scheme: light dark;
+        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
+        --canvas: #edf3ff;
+        --canvas-deep: #dfe9ff;
+        --ink: #17233d;
+        --muted: #66738e;
+        --faint: #8a96ad;
+        --glass: rgba(255, 255, 255, 0.62);
+        --glass-strong: rgba(255, 255, 255, 0.82);
+        --glass-line: rgba(255, 255, 255, 0.86);
+        --control: rgba(246, 249, 255, 0.68);
+        --control-line: rgba(124, 145, 194, 0.2);
+        --accent: #315cf5;
+        --accent-deep: #2448d2;
+        --accent-soft: rgba(49, 92, 245, 0.11);
+        --focus: rgba(49, 92, 245, 0.3);
+        --shadow: rgba(58, 82, 139, 0.18);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        min-width: 320px;
+        background: var(--canvas);
       }
 
       body {
         margin: 0;
         min-width: 320px;
-        background: #f7f8fa;
-        color: #202124;
+        min-height: 100vh;
+        overflow-x: hidden;
+        background:
+          radial-gradient(circle at 9% 3%, rgba(125, 159, 255, 0.42), transparent 31%),
+          radial-gradient(circle at 93% 12%, rgba(255, 191, 211, 0.46), transparent 28%),
+          linear-gradient(145deg, var(--canvas), var(--canvas-deep));
+        color: var(--ink);
+      }
+
+      body::before,
+      body::after {
+        position: fixed;
+        z-index: 0;
+        width: 220px;
+        height: 220px;
+        border-radius: 50%;
+        content: "";
+        filter: blur(18px);
+        opacity: 0.55;
+        pointer-events: none;
+      }
+
+      body::before {
+        right: -86px;
+        bottom: 14%;
+        background: rgba(126, 220, 255, 0.42);
+      }
+
+      body::after {
+        top: 37%;
+        left: -128px;
+        background: rgba(170, 150, 255, 0.3);
       }
 
       main {
-        box-sizing: border-box;
-        width: min(640px, 100%);
+        position: relative;
+        z-index: 1;
+        width: min(760px, 100%);
         margin: 0 auto;
-        padding: 32px 24px;
+        padding: clamp(28px, 7vw, 72px) clamp(20px, 5vw, 40px) 48px;
       }
 
-      label,
-      textarea,
-      button {
+      .brand-row,
+      .card-heading,
+      .field-heading,
+      .actions,
+      .privacy-note {
+        display: flex;
+        align-items: center;
+      }
+
+      .brand-row {
+        gap: 11px;
+      }
+
+      .brand-mark {
+        display: grid;
+        width: 34px;
+        height: 34px;
+        place-items: center;
+        border: 1px solid rgba(255, 255, 255, 0.9);
+        border-radius: 12px;
+        background: linear-gradient(145deg, #7895ff, #315cf5);
+        box-shadow: 0 9px 20px rgba(49, 92, 245, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.52);
+        color: #fff;
+        font-size: 17px;
+      }
+
+      .eyebrow,
+      .card-kicker,
+      .field-index,
+      .card-badge {
+        color: var(--faint);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.13em;
+        text-transform: uppercase;
+      }
+
+      .hero h1 {
+        max-width: 620px;
+        margin: 27px 0 14px;
+        font-size: clamp(35px, 7vw, 58px);
+        font-weight: 750;
+        letter-spacing: -0.065em;
+        line-height: 1.06;
+      }
+
+      .hero h1 span {
+        color: var(--accent);
+      }
+
+      .hero p {
+        max-width: 510px;
+        margin: 0;
+        color: var(--muted);
+        font-size: 16px;
+        letter-spacing: -0.02em;
+        line-height: 1.65;
+      }
+
+      .glass-card {
+        margin-top: 34px;
+        padding: clamp(21px, 5vw, 38px);
+        border: 1px solid var(--glass-line);
+        border-radius: 32px;
+        background: var(--glass);
+        box-shadow: 0 28px 70px var(--shadow), inset 0 1px 0 rgba(255, 255, 255, 0.78);
+        backdrop-filter: blur(28px) saturate(140%);
+        -webkit-backdrop-filter: blur(28px) saturate(140%);
+      }
+
+      .card-heading {
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 30px;
+      }
+
+      .card-heading h2 {
+        margin: 7px 0 0;
+        font-size: 22px;
+        letter-spacing: -0.04em;
+      }
+
+      .card-badge {
+        flex: 0 0 auto;
+        padding: 8px 10px;
+        border: 1px solid rgba(49, 92, 245, 0.14);
+        border-radius: 999px;
+        background: var(--accent-soft);
+        color: var(--accent);
+        font-size: 9px;
+        letter-spacing: 0.1em;
+      }
+
+      .field + .field {
+        margin-top: 25px;
+      }
+
+      .field-heading {
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 10px;
+      }
+
+      label {
         display: block;
+        font-size: 14px;
+        font-weight: 700;
+        letter-spacing: -0.025em;
+      }
+
+      .field-index {
+        color: var(--faint);
+        font-size: 10px;
+      }
+
+      .control-shell {
+        overflow: hidden;
+        border: 1px solid var(--control-line);
+        border-radius: 18px;
+        background: var(--control);
+        box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.7);
+        transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+      }
+
+      .control-shell:focus-within {
+        border-color: var(--accent);
+        background: var(--glass-strong);
+        box-shadow: 0 0 0 4px var(--focus), inset 0 1px 1px rgba(255, 255, 255, 0.82);
+      }
+
+      textarea,
+      input,
+      button {
+        font: inherit;
+      }
+
+      textarea,
+      input {
+        display: block;
+        width: 100%;
+        border: 0;
+        outline: 0;
+        background: transparent;
+        color: var(--ink);
       }
 
       textarea {
-        box-sizing: border-box;
-        width: 100%;
-        margin-top: 8px;
-        padding: 10px;
-        font: inherit;
+        min-height: 178px;
+        padding: 17px 18px;
         resize: vertical;
+        font-size: 15px;
+        line-height: 1.7;
       }
 
-      .actions {
+      input {
+        height: 54px;
+        padding: 0 18px;
+        font-size: 15px;
+      }
+
+      textarea::placeholder,
+      input::placeholder {
+        color: var(--faint);
+        opacity: 0.85;
+      }
+
+      .help {
+        margin: 10px 2px 0;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.6;
+      }
+
+      code {
+        padding: 2px 6px;
+        border-radius: 6px;
+        background: var(--accent-soft);
+        color: var(--accent-deep);
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.92em;
+      }
+
+      .examples {
         display: flex;
-        gap: 8px;
+        flex-wrap: wrap;
+        gap: 7px;
         margin-top: 12px;
       }
 
+      .example {
+        padding: 6px 10px;
+        border: 1px solid var(--control-line);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.3);
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .actions {
+        gap: 10px;
+        margin-top: 32px;
+      }
+
       button {
-        padding: 8px 14px;
+        min-height: 45px;
+        padding: 0 18px;
+        border: 1px solid transparent;
+        border-radius: 14px;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 700;
+        transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
+      }
+
+      button:hover {
+        transform: translateY(-1px);
+      }
+
+      button:focus-visible {
+        outline: 3px solid var(--focus);
+        outline-offset: 3px;
+      }
+
+      .primary-button {
+        background: linear-gradient(145deg, #5b7bff, var(--accent-deep));
+        box-shadow: 0 10px 20px rgba(49, 92, 245, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.35);
+        color: #fff;
+      }
+
+      .primary-button:hover {
+        box-shadow: 0 13px 24px rgba(49, 92, 245, 0.32), inset 0 1px 1px rgba(255, 255, 255, 0.35);
+      }
+
+      .secondary-button {
+        border-color: var(--control-line);
+        background: rgba(255, 255, 255, 0.34);
+        color: var(--muted);
+      }
+
+      .secondary-button:hover {
+        background: var(--glass-strong);
       }
 
       #settings-status {
         min-height: 1.5em;
-        margin-top: 12px;
+        margin: 15px 2px 0;
+        color: var(--accent-deep);
+        font-size: 12px;
+        line-height: 1.5;
+      }
+
+      .privacy-note {
+        gap: 9px;
+        justify-content: center;
+        margin: 20px auto 0;
+        color: var(--muted);
+        font-size: 11px;
+        text-align: center;
+      }
+
+      .privacy-note span {
+        display: grid;
+        width: 20px;
+        height: 20px;
+        place-items: center;
+        border-radius: 50%;
+        background: var(--accent-soft);
+        color: var(--accent);
+        font-size: 11px;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --canvas: #0f1424;
+          --canvas-deep: #1a2340;
+          --ink: #f2f5ff;
+          --muted: #b3bdd3;
+          --faint: #8692ae;
+          --glass: rgba(31, 42, 70, 0.62);
+          --glass-strong: rgba(34, 47, 79, 0.86);
+          --glass-line: rgba(190, 210, 255, 0.22);
+          --control: rgba(13, 21, 42, 0.3);
+          --control-line: rgba(185, 204, 255, 0.2);
+          --accent-soft: rgba(112, 143, 255, 0.16);
+          --focus: rgba(112, 143, 255, 0.34);
+          --shadow: rgba(0, 0, 0, 0.3);
+        }
+
+        .example,
+        .secondary-button {
+          background: rgba(255, 255, 255, 0.06);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          scroll-behavior: auto !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .hero h1 {
+          font-size: 38px;
+        }
+
+        .card-heading {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .actions {
+          align-items: stretch;
+          flex-direction: column-reverse;
+        }
+
+        button {
+          width: 100%;
+        }
+      }
+
+      @media (forced-colors: active) {
+        .glass-card,
+        .control-shell,
+        button {
+          border: 1px solid CanvasText;
+          background: Canvas;
+          box-shadow: none;
+        }
       }
     </style>
   </head>
   <body>
     <main>
-      <h1>KORUS Toolkit 설정</h1>
-      <form id="settings-form">
-        <label for="prefill-phrase">업무메일 프리필 문구</label>
-        <textarea
-          id="prefill-phrase"
-          name="prefillPhrase"
-          rows="7"
-          autocomplete="off"
-          spellcheck="false"
-        ></textarea>
-        <div class="actions">
-          <button type="submit">저장</button>
-          <button id="clear-button" type="button">초기화</button>
+      <header class="hero">
+        <div class="brand-row">
+          <span class="brand-mark" aria-hidden="true">✦</span>
+          <span class="eyebrow">KORUS TOOLKIT · SETTINGS</span>
         </div>
-        <p id="settings-status" role="status" aria-live="polite"></p>
-      </form>
+        <h1>업무메일을<br /><span>더 빠르게 시작하세요.</span></h1>
+        <p>자주 쓰는 인사말과 직급을 저장해 두면, 새 메일과 답장에 자연스럽게 채워져요.</p>
+      </header>
+
+      <section class="glass-card" aria-labelledby="settings-title">
+        <div class="card-heading">
+          <div>
+            <div class="card-kicker">Personal template</div>
+            <h2 id="settings-title">자동 입력 문구</h2>
+          </div>
+          <span class="card-badge">Local only</span>
+        </div>
+
+        <form id="settings-form">
+          <div class="field">
+            <div class="field-heading">
+              <label for="prefill-phrase">업무메일 프리필 문구</label>
+              <span class="field-index">01</span>
+            </div>
+            <div class="control-shell">
+              <textarea
+                id="prefill-phrase"
+                name="prefillPhrase"
+                rows="7"
+                autocomplete="off"
+                spellcheck="false"
+                aria-describedby="phrase-help"
+                placeholder="예: 안녕하세요, {{placeholder}}.&#10;&#10;업무 관련하여 연락드립니다."
+              ></textarea>
+            </div>
+            <p id="phrase-help" class="help">새 업무메일과 답장 작성 화면의 본문 맨 앞에 한 번만 입력돼요.</p>
+          </div>
+
+          <div class="field">
+            <div class="field-heading">
+              <label for="prefill-placeholder">직급 또는 호칭</label>
+              <span class="field-index">02</span>
+            </div>
+            <div class="control-shell">
+              <input
+                id="prefill-placeholder"
+                name="prefillPlaceholder"
+                type="text"
+                autocomplete="off"
+                list="rank-options"
+                placeholder="예: 팀장님"
+                aria-describedby="placeholder-help"
+              />
+            </div>
+            <p id="placeholder-help" class="help">
+              문구에서 <code>{{placeholder}}</code>를 입력한 자리에 이 값이 들어가요. 사용자마다 원하는 직급이나 호칭으로 바꿔 주세요.
+            </p>
+            <div class="examples" aria-label="직급 예시">
+              <span class="example">팀장님</span>
+              <span class="example">총장님</span>
+              <span class="example">연구사님</span>
+            </div>
+            <datalist id="rank-options">
+              <option value="팀장님"></option>
+              <option value="총장님"></option>
+              <option value="연구사님"></option>
+            </datalist>
+          </div>
+
+          <div class="actions">
+            <button class="primary-button" type="submit">설정 저장</button>
+            <button class="secondary-button" id="clear-button" type="button">초기화</button>
+          </div>
+          <p id="settings-status" role="status" aria-live="polite"></p>
+        </form>
+      </section>
+
+      <p class="privacy-note"><span aria-hidden="true">✓</span> 입력한 설정은 이 브라우저의 확장 프로그램 저장소에만 보관돼요.</p>
     </main>
     <script type="module" src="./settings.js"></script>
   </body>

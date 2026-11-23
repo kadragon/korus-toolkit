@@ -3,51 +3,77 @@ import { describe, expect, it } from 'vitest';
 import {
   createPhraseStore,
   isPhraseEnabled,
+  PREFILL_PLACEHOLDER_KEY,
   PREFILL_PHRASE_KEY,
+  type PhraseSettings,
   type ExtensionApi,
 } from './settings-store';
 
-function createFakeApi(initialValue: unknown): {
+function createFakeApi(initialPhrase: unknown, initialPlaceholder: unknown = ''): {
   api: ExtensionApi;
-  getStoredValue: () => unknown;
+  getStoredSettings: () => { phrase: unknown; placeholder: unknown };
   setItems: Record<string, string>[];
 } {
-  let value = initialValue;
+  let phrase = initialPhrase;
+  let placeholder = initialPlaceholder;
   const setItems: Record<string, string>[] = [];
 
   const api: ExtensionApi = {
     storage: {
       local: {
-        get: (_keys, callback) => callback({ [PREFILL_PHRASE_KEY]: value }),
+        get: (_keys, callback) =>
+          callback({
+            [PREFILL_PHRASE_KEY]: phrase,
+            [PREFILL_PLACEHOLDER_KEY]: placeholder,
+          }),
         set: (items, callback) => {
           setItems.push(items);
-          value = items[PREFILL_PHRASE_KEY];
+          phrase = items[PREFILL_PHRASE_KEY];
+          placeholder = items[PREFILL_PLACEHOLDER_KEY];
           callback();
         },
       },
     },
   };
 
-  return { api, getStoredValue: () => value, setItems };
+  return {
+    api,
+    getStoredSettings: () => ({ phrase, placeholder }),
+    setItems,
+  };
 }
 
 describe('phrase storage adapter', () => {
-  it('loads only a string phrase and treats other stored values as empty', async () => {
-    const stringStore = createFakeApi('synthetic phrase');
-    const nonStringStore = createFakeApi({ unexpected: true });
+  it('loads only string settings and treats other stored values as empty', async () => {
+    const stringStore = createFakeApi('synthetic phrase', '팀장님');
+    const nonStringStore = createFakeApi({ unexpected: true }, ['unexpected']);
 
-    await expect(createPhraseStore(stringStore.api).load()).resolves.toBe('synthetic phrase');
-    await expect(createPhraseStore(nonStringStore.api).load()).resolves.toBe('');
+    await expect(createPhraseStore(stringStore.api).load()).resolves.toEqual({
+      phrase: 'synthetic phrase',
+      placeholder: '팀장님',
+    });
+    await expect(createPhraseStore(nonStringStore.api).load()).resolves.toEqual({
+      phrase: '',
+      placeholder: '',
+    });
   });
 
-  it('writes exactly one local-storage field and preserves special characters', async () => {
+  it('writes exactly two local-storage fields and preserves special characters', async () => {
     const fake = createFakeApi('');
-    const phrase = '<tag> & "quote"\nsecond line';
+    const settings: PhraseSettings = {
+      phrase: '<tag> & "quote"\nsecond line',
+      placeholder: '연구사님 & "quote"',
+    };
 
-    await createPhraseStore(fake.api).save(phrase);
+    await createPhraseStore(fake.api).save(settings);
 
-    expect(fake.getStoredValue()).toBe(phrase);
-    expect(fake.setItems).toEqual([{ [PREFILL_PHRASE_KEY]: phrase }]);
+    expect(fake.getStoredSettings()).toEqual(settings);
+    expect(fake.setItems).toEqual([
+      {
+        [PREFILL_PHRASE_KEY]: settings.phrase,
+        [PREFILL_PLACEHOLDER_KEY]: settings.placeholder,
+      },
+    ]);
   });
 
   it('rejects browser storage errors with a non-sensitive message', async () => {

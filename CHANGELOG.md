@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- [done] Configurable rank placeholder and Liquid Glass settings (2026-08-27) → docs/design/korus-mail-prefill.md
 - [done] Recipient-aware mail prefill (2026-08-14) → docs/design/korus-mail-prefill.md
 - [done] Support mail prefill line breaks and replies (2026-08-14) → docs/design/korus-mail-prefill.md
 - [done] Insert configured phrase in new 업무메일 composers (2026-08-14) → docs/design/korus-mail-prefill.md

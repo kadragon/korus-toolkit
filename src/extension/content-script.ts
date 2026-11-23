@@ -1,9 +1,15 @@
 import {
+  composerObservationOptions,
+  isComposerMutationRelevant,
   isComposerPage,
   prefillComposer,
   type PageLocation,
 } from './korus-new-composer';
 import { createPhraseStore, type PhraseStore } from './settings-store';
+
+function findObservationTarget(pageDocument: Document): Node {
+  return pageDocument.body!;
+}
 
 export function observeComposer(
   store: PhraseStore,
@@ -15,17 +21,37 @@ export function observeComposer(
   }
 
   let observer: MutationObserver | undefined;
+  let observedTarget: Node | undefined;
+  const retargetObserver = (): void => {
+    const target = findObservationTarget(pageDocument);
+    if (target === observedTarget) {
+      return;
+    }
+
+    observer?.disconnect();
+    observer?.observe(target, composerObservationOptions);
+    observedTarget = target;
+  };
+
   const attemptPrefill = async (): Promise<void> => {
     const inserted = await prefillComposer(store, pageDocument, pageLocation);
     if (inserted) {
       observer?.disconnect();
+      return;
     }
+
+    retargetObserver();
   };
 
-  observer = new MutationObserver(() => {
+  observer = new MutationObserver((mutations) => {
+    if (!mutations.some(isComposerMutationRelevant)) {
+      return;
+    }
+
+    retargetObserver();
     void attemptPrefill();
   });
-  observer.observe(pageDocument.body, { childList: true, subtree: true });
+  retargetObserver();
   void attemptPrefill();
   return observer;
 }
