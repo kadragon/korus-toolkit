@@ -1,11 +1,11 @@
 import {
+  composerObservationOptions,
+  isComposerMutationRelevant,
   isComposerPage,
   prefillComposer,
   type PageLocation,
 } from './korus-new-composer';
 import { createPhraseStore, type PhraseStore } from './settings-store';
-
-const EDITABLE_BODY_SELECTOR = 'div.note-editable[contenteditable="true"]';
 
 function findObservationTarget(pageDocument: Document): Node {
   return pageDocument.body!;
@@ -29,7 +29,7 @@ export function observeComposer(
     }
 
     observer?.disconnect();
-    observer?.observe(target, { childList: true, subtree: true });
+    observer?.observe(target, composerObservationOptions);
     observedTarget = target;
   };
 
@@ -44,8 +44,7 @@ export function observeComposer(
   };
 
   observer = new MutationObserver((mutations) => {
-    const editableBody = pageDocument.querySelector<HTMLElement>(EDITABLE_BODY_SELECTOR);
-    if (editableBody && mutations.every(({ target }) => editableBody.contains(target))) {
+    if (!mutations.some(isComposerMutationRelevant)) {
       return;
     }
 

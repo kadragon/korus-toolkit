@@ -23,9 +23,9 @@ Add a Chromium extension feature that lets the operator save one prefill phrase 
 - Provide one settings surface for one phrase and one user-controlled placeholder value, stored only in extension-local storage. Explain that `{{placeholder}}` in the phrase resolves to the configured value; provide a clear/reset path and never store KORUS page content, credentials, cookies, tokens, or session identifiers.
 - Centralize KORUS page detection, composer state, and selectors in an integration adapter. The adapter must distinguish a new composer from a reply composer and expose only a validated editable response area to feature logic.
 - Run the content script in all matching frames because the observed reply composer is loaded in the KORUS body frame; page-path validation still keeps unsupported frames inert.
-- Insert with text-safe DOM operations. A new composer and a reply composer each receive at most one insertion for their own lifetime; repeated DOM observations must not duplicate the phrase. Reply insertion targets the editable response area before quoted content.
+- Insert with text-safe DOM operations. A new composer and a reply composer each receive at most one insertion for their own lifetime; repeated DOM observations must not duplicate the phrase. Reply insertion targets the editable response area before quoted content. A collapsed caret at the insertion boundary advances past the inserted phrase.
 - When the phrase contains the exact `{{placeholder}}` token, require a non-empty configured placeholder value and replace every token with that value once. A blank value leaves the composer untouched rather than inserting a literal token.
-- When the phrase contains the exact `{{받는 사람}}` token, wait for the first `option[username]` in the unique `select#selectrcvuser` recipient list, replace every token with that option's username once, and then insert the resolved phrase. Later recipient changes do not rewrite the inserted text.
+- When the phrase contains the exact `{{받는 사람}}` token, wait for the name of the first option with `username` or `userid` metadata in the unique `select#selectrcvuser` list. Ignore options without either attribute. A present `username` must be non-blank. An option with only `userid` must have a non-blank identifier and display text in the `Name / Details` format. Replace every token with that name once. Later recipient changes do not rewrite the inserted text.
 - Treat an empty phrase as disabled. If the expected page state, editable target, or required placeholder value is absent or ambiguous, do nothing and surface an actionable non-sensitive diagnostic where appropriate.
 
 ## Testing Decisions
@@ -59,7 +59,7 @@ The new composer is recognized only when all of the following are true:
 
 The observed composer context also contains exactly one visible `input#title[name="title"]` subject control and exactly one visible `input#txtUsername_test[name="txtUsername_test"]` recipient control. These controls are documented context markers, not recognition gates for a body-only integration.
 
-When a saved phrase contains `{{placeholder}}`, the integration reads the operator-configured placeholder value from extension-local storage and never changes page controls. When a saved phrase contains `{{받는 사람}}`, the integration additionally reads the first recipient from the unique `select#selectrcvuser` list and its `username` option attribute. The body prefill waits for that option when necessary; the recipient control itself is never changed.
+When a saved phrase contains `{{placeholder}}`, the integration reads the operator-configured placeholder value from extension-local storage and never changes page controls. When a saved phrase contains `{{받는 사람}}`, the body prefill waits for the first recipient's name using the metadata rules above. The recipient control itself is never changed.
 
 The page also contains a hidden `input#editBoxVal[name="contents"]` and a visible `textarea#sign[name="sign"]`. Neither is the observed body target: the former is hidden state, and the latter's semantic relationship to the composer body was not established. A synthetic typing check did not immediately change the hidden mirror; the observed host send path copies the visible `#editBox` HTML into `#editBoxVal` before submission. Extension insertion therefore targets only the validated visible editor, never writes the hidden field directly, and does not claim to send or verify a message.
 
@@ -76,7 +76,7 @@ The reply composer is recognized only when all of the following are true:
 
 The observed editor contains existing response/quoted content after two leading `<br>` elements, but no stable semantic boundary identifies the quoted portion. The extension therefore inserts the configured phrase before the editor's first child and preserves every existing node. It never parses, rewrites, or stores the reply content.
 
-Reply recipients are already populated in the observed workflow through the same `select#selectrcvuser` list. A phrase containing `{{placeholder}}` uses the configured rank or honorific value. A phrase containing `{{받는 사람}}` uses the first `option[username]` value at insertion time and never rewrites the reply body when later options change.
+Reply recipients are already populated in the observed workflow through the same `select#selectrcvuser` list. A phrase containing `{{placeholder}}` uses the configured rank or honorific value. A phrase containing `{{받는 사람}}` resolves the first recipient using the same metadata rules as a new composer.
 
 Sanitized fixture shape for future tests:
 
