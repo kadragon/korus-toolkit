@@ -23,7 +23,7 @@ export const composerObservationOptions: MutationObserverInit = {
   childList: true,
   subtree: true,
   attributes: true,
-  attributeFilter: [...RECIPIENT_METADATA_ATTRIBUTES, 'class', 'contenteditable', 'hidden', 'aria-hidden', 'style'],
+  attributeFilter: [...RECIPIENT_METADATA_ATTRIBUTES, 'value', 'class', 'contenteditable', 'hidden', 'aria-hidden', 'style'],
 };
 
 export function isComposerMutationRelevant({ target, type, attributeName }: MutationRecord): boolean {
@@ -36,7 +36,7 @@ export function isComposerMutationRelevant({ target, type, attributeName }: Muta
     return false;
   }
 
-  if (RECIPIENT_METADATA_ATTRIBUTES.includes(attributeName)) {
+  if (attributeName === 'value' || RECIPIENT_METADATA_ATTRIBUTES.includes(attributeName)) {
     return element.matches('option') && element.closest(RECIPIENT_LIST_SELECTOR) !== null;
   }
 
@@ -191,8 +191,12 @@ export function resolvePhrase(
       }
 
       const { option } = recipient;
-      const position = option.value.split('/')[2]?.trim() || option.textContent?.split('/')[2]?.trim();
-      if (position?.includes('주사')) {
+      const valuePosition = option.value.split('/')[2]?.trim();
+      const textPosition = option.text.split('/')[2]?.trim();
+      if (valuePosition === undefined && textPosition === undefined) {
+        return null;
+      }
+      if ((valuePosition || textPosition)?.includes('주사')) {
         rank = '팀장님';
       }
     }
